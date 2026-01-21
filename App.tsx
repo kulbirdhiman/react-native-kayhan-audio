@@ -1,15 +1,13 @@
-import { ScreenContent } from 'components/ScreenContent';
-import { StatusBar } from 'expo-status-bar';
-
-import './global.css';
-import ProductScreen from 'components/productScreen';
+import { NavigationContainer } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import StackNavigator from "./navigation/StackNavigator";
 
 export default function App() {
   return (
-    <>
-      {/* <ScreenContent title="Home" path="App.tsx"></ScreenContent> */}
-      <ProductScreen />
-      <StatusBar style="auto" />
-    </>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StackNavigator />
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
