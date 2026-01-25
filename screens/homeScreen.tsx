@@ -9,6 +9,10 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ComboDeals from "components/home/comboDeal";
+import HotDeals from "components/home/DealSection";
+import SupportSection from "components/home/SupportSection";
+// import FindSteeringWheel from "components/home/StreeringWheel";
 
 /* ---------------- TYPES ---------------- */
 type Step = "company" | "model" | "subModel" | "year";
@@ -152,7 +156,8 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
-
+        <ComboDeals />
+        <HotDeals />
         {/* ACCESSORIES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Accessories</Text>
@@ -165,7 +170,8 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
-
+        <SupportSection />
+        {/* <FindSteeringWheel /> */}
         {/* NEWSLETTER */}
         <View style={styles.newsletter}>
           <Text style={styles.newsTitle}>Never miss anything!</Text>
@@ -183,7 +189,7 @@ export default function HomeScreen() {
 
 /* ---------------- DATA ---------------- */
 
-const VEHICLE_DATA:any = {
+const VEHICLE_DATA: any = {
   Ford: {
     Falcon: {
       XR6: ["2016", "2017", "2018"],
