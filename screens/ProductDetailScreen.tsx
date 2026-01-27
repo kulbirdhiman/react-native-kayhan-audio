@@ -8,17 +8,23 @@ import {
   FlatList,
   Dimensions,
   ScrollView,
+  Alert,
+  Platform,
 } from "react-native";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useDispatch } from "react-redux";
+
 import type { RootStackParamList } from "../navigation/StackNavigator";
 import { useProductDetailForShopQuery } from "store/api/productApi";
+import type { AppDispatch } from "store/store";
+import { addToCart } from "store/actions/CartAction";
 
 const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
-
 const { width } = Dimensions.get("window");
 const IMAGE_HEIGHT = width * 0.6;
+const BOTTOM_BAR_HEIGHT = 70;
 
 const TABS = ["Description", "Specifications", "Demo Video"];
 
@@ -31,9 +37,9 @@ type NavProps = NativeStackNavigationProp<
 export default function ProductDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavProps>();
+  const dispatch = useDispatch<AppDispatch>();
 
   const slug = (route.params as any)?.productId;
-
   const { data, isLoading, isError } =
     useProductDetailForShopQuery(slug);
 
@@ -57,15 +63,33 @@ export default function ProductDetailScreen() {
   }
 
   const product = data.data.result;
-  const relatedProducts = data.data.relatedProduct || [];
 
-  // ✅ Safe images
   const images =
     product.images?.length > 0
       ? product.images.map((i: any) => IMAGE_BASE_URL + i.image)
       : product.image
       ? [IMAGE_BASE_URL + product.image]
       : [];
+
+  /* ---------------- ADD TO CART ---------------- */
+  const handleAddToCart = () => {
+    dispatch(
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.discount_price || product.regular_price,
+        image: images[0],
+        qty: 1,
+      })
+    );
+
+    Alert.alert("✅ Added to Cart", product.name);
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    navigation.navigate("Cart");
+  };
 
   return (
     <View style={styles.container}>
@@ -102,8 +126,14 @@ export default function ProductDetailScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Product Info */}
+      {/* CONTENT */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{
+          paddingBottom: BOTTOM_BAR_HEIGHT + 20, // 🔥 important
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.brand}>{product.brand}</Text>
         <Text style={styles.name}>{product.name}</Text>
 
@@ -149,13 +179,10 @@ export default function ProductDetailScreen() {
           ))}
         </View>
 
-        {/* Tab Content */}
         <View style={styles.tabContent}>
           {activeTab === "Description" && (
             <Text style={styles.text}>
-              {product.description ||
-                product.seo_description ||
-                "No description available"}
+              {product.description || "No description available"}
             </Text>
           )}
 
@@ -176,63 +203,15 @@ export default function ProductDetailScreen() {
             </View>
           )}
         </View>
-
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <View style={{ marginTop: 24 }}>
-            <Text style={styles.sectionTitle}>
-              Related Products
-            </Text>
-
-            <FlatList
-              data={relatedProducts}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item: any) => item.id.toString()}
-              renderItem={({ item }: any) => {
-                const img =
-                  item.images?.length > 0
-                    ? IMAGE_BASE_URL + item.images[0].image
-                    : null;
-
-                return (
-                  <TouchableOpacity
-                    style={styles.relatedCard}
-                    onPress={() =>
-                      navigation.push("ProductDetail", {
-                        slug: item.slug,
-                      })
-                    }
-                  >
-                    {img && (
-                      <Image
-                        source={{ uri: img }}
-                        style={styles.relatedImage}
-                      />
-                    )}
-                    <Text
-                      numberOfLines={2}
-                      style={styles.relatedName}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text style={styles.relatedPrice}>
-                      ${item.regular_price}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        )}
       </ScrollView>
 
-      {/* Bottom Bar */}
+      {/* 🔥 FIXED BOTTOM BAR */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.cartBtn}>
+        <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
           <Text style={styles.cartText}>Add to Cart</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.buyBtn}>
+
+        <TouchableOpacity style={styles.buyBtn} onPress={handleBuyNow}>
           <Text style={styles.buyText}>Buy Now</Text>
         </TouchableOpacity>
       </View>
@@ -250,7 +229,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 50,
     left: 16,
-    zIndex: 10,
+    zIndex: 20,
     backgroundColor: "#fff",
     padding: 8,
     borderRadius: 20,
@@ -259,7 +238,7 @@ const styles = StyleSheet.create({
 
   image: {
     width,
-    height: IMAGE_HEIGHT,
+    // height: IMAGE_HEIGHT,
     resizeMode: "contain",
   },
 
@@ -280,10 +259,17 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
 
   brand: { fontSize: 15, fontWeight: "700" },
-  name: { fontSize: 14, color: "#555", marginVertical: 6 },
+  // name: { fontSize: 22,color: "#555", marginVertical: 6 ,  },
+  name: { 
+  fontSize: 22,
+  color: "#0000",
+  marginVertical: 6,
+  fontWeight: "700", // <-- makes it bold
+},
+
 
   priceRow: { flexDirection: "row", alignItems: "center" },
-  price: { fontSize: 20, fontWeight: "700", marginRight: 8 },
+  price: { fontSize: 20, fontWeight: "800", marginRight: 8 , },
   mrp: {
     fontSize: 14,
     color: "#888",
@@ -309,53 +295,41 @@ const styles = StyleSheet.create({
   videoBox: { alignItems: "center", marginTop: 30 },
   videoText: { marginTop: 8, color: "#777" },
 
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
+  /* 🔥 FIXED POSITION */
+  bottomBar: {
+    position: "absolute",
+    bottom: 30 , 
+    left: 12,
+    right: 12,
 
-  relatedCard: {
-    width: 150,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 8,
+    flexDirection: "row",
     padding: 10,
     backgroundColor: "#fff",
-  },
-  relatedImage: {
-    width: "100%",
-    height: 100,
-    resizeMode: "contain",
-  },
-  relatedName: { fontSize: 13, marginTop: 6 },
-  relatedPrice: { fontWeight: "700", marginTop: 4 },
+    borderRadius: 12,
 
-  bottomBar: {
-    flexDirection: "row",
-    padding: 12,
-    borderTopWidth: 1,
-    borderColor: "#eee",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+
+    zIndex: 100,
   },
+
   cartBtn: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#000",
     padding: 14,
-    borderRadius: 6,
+    borderRadius: 8,
     marginRight: 10,
   },
   buyBtn: {
     flex: 1,
     backgroundColor: "#000",
     padding: 14,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   cartText: { textAlign: "center", fontWeight: "700" },
-  buyText: {
-    textAlign: "center",
-    fontWeight: "700",
-    color: "#fff",
-  },
+  buyText: { textAlign: "center", fontWeight: "700", color: "#fff" },
 });

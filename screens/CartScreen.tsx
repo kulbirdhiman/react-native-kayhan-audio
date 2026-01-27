@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
@@ -9,59 +9,21 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type CartItemType = {
-  id: number;
-  name: string;
-  price: number;
-  qty: number;
-  image: string;
-  discount?: number;
-};
-
-const initialCartItems: CartItemType[] = [
-  {
-    id: 1,
-    name: "Wireless Headphones",
-    price: 2999,
-    qty: 1,
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1767939747660_30-DSC07429.jpg&w=2048&q=75",
-    discount: 10,
-  },
-  {
-    id: 2,
-    name: "Bluetooth Speaker",
-    price: 1599,
-    qty: 2,
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1767934473607_5-DSC07531.jpg&w=2048&q=75",
-    discount: 15,
-  },
-];
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "../store/store";
+import {
+  increaseQty,
+  decreaseQty,
+  removeItem,
+} from "../store/actions/CartAction";
 
 export default function CartScreen({ navigation }: any) {
-  const [cartItems, setCartItems] = useState<CartItemType[]>(initialCartItems);
+  const dispatch = useDispatch<AppDispatch>();
 
-  const increaseQty = (id: number) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: item.qty + 1 } : item
-      )
-    );
-  };
-
-  const decreaseQty = (id: number) => {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.id === id && item.qty > 1 ? { ...item, qty: item.qty - 1 } : item
-      )
-    );
-  };
-
-  const removeItem = (id: number) => {
-    setCartItems((prev) => prev.filter((item) => item.id !== id));
-  };
+  // ✅ Get cart from Redux
+  const cartItems = useSelector(
+    (state: RootState) => state.cart.items
+  );
 
   const totalPrice = cartItems.reduce(
     (sum, item) => sum + item.price * item.qty,
@@ -70,7 +32,7 @@ export default function CartScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Amazon Header */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation?.goBack()}>
           <Ionicons name="arrow-back" size={22} color="#111" />
@@ -87,7 +49,6 @@ export default function CartScreen({ navigation }: any) {
             {/* Details */}
             <View style={styles.details}>
               <Text style={styles.name}>{item.name}</Text>
-
               <Text style={styles.inStock}>In stock</Text>
 
               <Text style={styles.price}>
@@ -98,7 +59,7 @@ export default function CartScreen({ navigation }: any) {
               <View style={styles.qtyRow}>
                 <TouchableOpacity
                   style={styles.qtyBtn}
-                  onPress={() => decreaseQty(item.id)}
+                  onPress={() => dispatch(decreaseQty(item.id))}
                 >
                   <Text>-</Text>
                 </TouchableOpacity>
@@ -107,7 +68,7 @@ export default function CartScreen({ navigation }: any) {
 
                 <TouchableOpacity
                   style={styles.qtyBtn}
-                  onPress={() => increaseQty(item.id)}
+                  onPress={() => dispatch(increaseQty(item.id))}
                 >
                   <Text>+</Text>
                 </TouchableOpacity>
@@ -115,10 +76,14 @@ export default function CartScreen({ navigation }: any) {
 
               {/* Actions */}
               <View style={styles.actionRow}>
-                <TouchableOpacity onPress={() => removeItem(item.id)}>
+                <TouchableOpacity
+                  onPress={() => dispatch(removeItem(item.id))}
+                >
                   <Text style={styles.actionText}>Delete</Text>
                 </TouchableOpacity>
+
                 <Text style={styles.divider}>|</Text>
+
                 <TouchableOpacity>
                   <Text style={styles.actionText}>Save for later</Text>
                 </TouchableOpacity>
@@ -128,7 +93,7 @@ export default function CartScreen({ navigation }: any) {
         ))}
       </ScrollView>
 
-      {/* Amazon Checkout Bar */}
+      {/* Checkout Bar */}
       {cartItems.length > 0 && (
         <View style={styles.checkoutBar}>
           <Text style={styles.subtotal}>
@@ -137,7 +102,9 @@ export default function CartScreen({ navigation }: any) {
           </Text>
 
           <TouchableOpacity style={styles.checkoutBtn}>
-            <Text style={styles.checkoutText}>Proceed to Buy</Text>
+            <Text style={styles.checkoutText}  
+            onPress={() => navigation.navigate("Checkout")}
+            >Proceed to Buy</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -256,13 +223,14 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  checkoutBtn: {
-    backgroundColor: "#FFD814", // Amazon yellow
-    padding: 14,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-
+ checkoutBtn: {
+  backgroundColor: "#FFD814", // Amazon yellow
+  padding: 14,                // general padding
+  paddingBottom: 10, 
+  borderRadius: 8,
+  alignItems: "center",
+  marginBottom : 30
+}, 
   checkoutText: {
     fontSize: 16,
     fontWeight: "700",
