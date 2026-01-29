@@ -5,17 +5,49 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSignInMutation } from "store/api/auth/authApi";
+import { useDispatch } from "react-redux";
+import { setCredentials } from "store/api/auth/authSlice";
+import { saveAuth } from "store/utils/authStorage";
+import { useNavigation } from "@react-navigation/native";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const dispatch = useDispatch();
+  const navigation:any = useNavigation();
+  const [signIn, { isLoading }] = useSignInMutation();
 
-  const handleLogin = () => {
-    console.log("Email:", email);
-    console.log("Password:", password);
-    // TODO: connect API / Firebase / backend
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Error", "Email and password are required");
+      return;
+    }
+
+    try {
+      const response = await signIn({ email, password }).unwrap();
+      const { token, user } = response.data;
+
+      // Save token only
+      await saveAuth(token);
+
+      // Update Redux
+      dispatch(setCredentials({ token, user }));
+
+      Alert.alert("Success", "Logged in successfully 🎉");
+
+      // Navigate
+      navigation.replace("MainTabs");
+    } catch (error: any) {
+      Alert.alert(
+        "Login Failed",
+        error?.data?.message || "Invalid email or password"
+      );
+    }
   };
 
   return (
@@ -42,16 +74,30 @@ export default function LoginScreen() {
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.footerText}>
-        Don’t have an account? <Text style={styles.link}>Sign up</Text>
+        Don’t have an account?{" "}
+        <Text style={styles.link} onPress={() => navigation.navigate("Signup")}>
+          Sign up
+        </Text>
       </Text>
     </SafeAreaView>
   );
 }
+
+// styles remain same
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
