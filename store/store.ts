@@ -1,14 +1,15 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { persistReducer, persistStore } from "redux-persist";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import apiSlice from "./api/apiSlice";
-import cartReducer from "./actions/CartAction"
-import { addToCart } from "./actions/CartAction";
+import cartReducer from "./actions/CartAction";
+import authReducer from "./api/auth/authSlice";
+
 const cartPersistConfig = {
   key: "cart",
   storage: AsyncStorage,
 };
-
 
 const persistedCartReducer = persistReducer(
   cartPersistConfig,
@@ -18,7 +19,8 @@ const persistedCartReducer = persistReducer(
 const store = configureStore({
   reducer: {
     [apiSlice.reducerPath]: apiSlice.reducer,
-    cart: persistedCartReducer,
+    cart: persistedCartReducer, // persisted
+    auth: authReducer,          // NOT persisted ✅
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

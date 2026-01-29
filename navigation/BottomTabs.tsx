@@ -6,7 +6,7 @@ import HomeScreen from "screens/homeScreen";
 import ProductListScreen from "screens/ProductListScreen";
 import CartScreen from "screens/CartScreen";
 import ProfileUpdateScreen from "screens/user/ProfileUpdateScreen";
-
+import LoginScreen from "screens/auth/LoginScreen";
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
@@ -49,7 +49,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Search" component={ProductListScreen} />
       <Tab.Screen name="Shop" component={ProductListScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Account" component={ProfileUpdateScreen} />
+      <Tab.Screen name="Account" component={LoginScreen} />
     </Tab.Navigator>
   );
 }
