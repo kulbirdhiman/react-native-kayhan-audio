@@ -8,7 +8,7 @@ import CheckoutScreen from "../screens/checkoutScreen";
 import OrdersScreen from "../screens/user/OrdersScreen";
 import BottomTabs from "./BottomTabs";
 import CartScreen from "../screens/CartScreen";
-
+import ProfileUpdateScreen from "screens/user/ProfileUpdateScreen";
 /* ---------- TYPES ---------- */
 export type RootStackParamList = {
   Login: undefined;

@@ -8,14 +8,13 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Modal,
-  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { useListProductForShopQuery } from "store/api/productApi";
-import CarModelPicker from "components/global/CarModelPicker";
+import { useListProductForShopQuery } from "store/api/product/productApi";
+import { useGetDepartmentsQuery } from "store/api/category/departmentApi";
+import ProductFilterSidebar from "components/products/ProductFilterSidebar";
 
 const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
@@ -25,14 +24,19 @@ export default function ProductListScreen() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [favorites, setFavorites] = useState<number[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
 
-  // ---------------- FILTER STATES ----------------
-  const [filterVisible, setFilterVisible] = useState(false);
-  const [category, setCategory] = useState(""); // can map to Make
-  const [company, setCompany] = useState(""); // optional
-  const [model, setModel] = useState(""); // Model slug
-  const [year, setYear] = useState(""); // Year string
-  const [limit, setLimit] = useState(15);
+  // 🔥 FILTER STATES
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<{
+    company: number | null;
+    model: number | null;
+    year: string | null;
+  }>({
+    company: null,
+    model: null,
+    year: null,
+  });
 
   // ---------------- DEBOUNCE SEARCH ----------------
   useEffect(() => {
@@ -40,28 +44,30 @@ export default function ProductListScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // ---------------- FETCH CATEGORIES ----------------
+  const { data: deptData, isLoading: isDeptLoading } =
+    useGetDepartmentsQuery();
+  const categories = deptData?.data?.result || [];
+  console.log(selectedCategory ,filters, "this is")
   // ---------------- FETCH PRODUCTS ----------------
   const { data, isLoading, isError } = useListProductForShopQuery({
     page: 1,
-    limit,
+    limit: 65,
     search: debouncedSearch,
-    category,
-    company,
-    model,
-    // year,
+    category: selectedCategory,
+    company: filters.company,
+    model: filters.model,
+    year: filters.year,
   });
 
   const products = data?.data?.result || [];
 
   // ---------------- FAVORITES ----------------
   const toggleFavorite = (id: number) => {
-    setFavorites(prev =>
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
     );
   };
-
-  // ---------------- APPLY FILTERS ----------------
-  const applyFilters = () => setFilterVisible(false);
 
   // ---------------- RENDER PRODUCT ITEM ----------------
   const renderItem = ({ item }: any) => {
@@ -72,9 +78,10 @@ export default function ProductListScreen() {
     return (
       <TouchableOpacity
         style={styles.card}
-        onPress={() => navigation.navigate("ProductDetail", { productId: item.slug })}
+        onPress={() =>
+          navigation.navigate("ProductDetail", { productId: item.slug })
+        }
       >
-        {/* Heart Button */}
         <TouchableOpacity
           style={styles.heart}
           onPress={() => toggleFavorite(item.id)}
@@ -86,10 +93,8 @@ export default function ProductListScreen() {
           />
         </TouchableOpacity>
 
-        {/* Product Image */}
         <Image source={{ uri: image }} style={styles.image} />
 
-        {/* Product Info */}
         <View style={styles.info}>
           <Text numberOfLines={2} style={styles.name}>
             {item.name}
@@ -110,7 +115,9 @@ export default function ProductListScreen() {
   };
 
   // ---------------- LOADING / ERROR ----------------
-  if (isLoading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+  if (isLoading || isDeptLoading)
+    return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+
   if (isError)
     return (
       <Text style={{ flex: 1, textAlign: "center", marginTop: 20 }}>
@@ -122,24 +129,56 @@ export default function ProductListScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Products</Text>
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color="#666" />
-            <TextInput
-              placeholder="Search products"
-              value={search}
-              onChangeText={setSearch}
-              style={styles.searchInput}
-            />
-          </View>
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setFilterVisible(true)}
-          >
-            <Ionicons name="funnel-outline" size={24} color="#FFF" />
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Products</Text>
+
+          {/* 🔥 FILTER BUTTON */}
+          <TouchableOpacity onPress={() => setFiltersOpen(()=>!filtersOpen)}>
+            <Ionicons name="filter" size={22} />
           </TouchableOpacity>
         </View>
+
+        {/* SEARCH */}
+        <View style={styles.searchBox}>
+          <Ionicons name="search" size={18} color="#666" />
+          <TextInput
+            placeholder="Search products"
+            value={search}
+            onChangeText={setSearch}
+            style={styles.searchInput}
+          />
+        </View>
+
+        {/* CATEGORIES */}
+        <FlatList
+          data={categories}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => item.slug.toString()}
+          contentContainerStyle={{ marginTop: 10 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.categoryButton,
+                selectedCategory === item.slug && styles.categorySelected,
+              ]}
+              onPress={() =>
+                setSelectedCategory(
+                  selectedCategory === item.slug ? null : item.slug
+                )
+              }
+            >
+              <Text
+                style={{
+                  color: selectedCategory === item.slug ? "#FFF" : "#333",
+                  fontWeight: "500",
+                }}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
       </View>
 
       {/* PRODUCT LIST */}
@@ -153,66 +192,15 @@ export default function ProductListScreen() {
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 8 }}
       />
 
-      {/* FILTER MODAL */}
-      <Modal visible={filterVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Filters</Text>
-            <ScrollView>
-              {/* CATEGORY */}
-              <Text style={styles.label}>Category / Make</Text>
-              <TextInput
-                placeholder="Enter category slug"
-                style={styles.input}
-                value={category}
-                onChangeText={setCategory}
-              />
-
-              {/* COMPANY */}
-              <Text style={styles.label}>Company</Text>
-              <TextInput
-                placeholder="Enter company slug"
-                style={styles.input}
-                value={company}
-                onChangeText={setCompany}
-              />
-
-              {/* CAR MODEL PICKER */}
-              <Text style={styles.label}>Car Model & Year</Text>
-              <CarModelPicker
-                onSelect={({ make, model: m, submodel, year: y }) => {
-                  setCategory(make); // map to category
-                  setModel(m);
-                  setYear(y || "");
-                }}
-              />
-
-              {/* PRODUCTS PER PAGE */}
-              <Text style={styles.label}>Products per page</Text>
-              <TextInput
-                placeholder="Limit"
-                style={styles.input}
-                value={limit.toString()}
-                onChangeText={text => setLimit(Number(text))}
-                keyboardType="numeric"
-              />
-
-              {/* APPLY BUTTON */}
-              <TouchableOpacity style={styles.applyBtn} onPress={applyFilters}>
-                <Text style={styles.applyText}>Apply Filters</Text>
-              </TouchableOpacity>
-
-              {/* CLOSE BUTTON */}
-              <TouchableOpacity
-                style={styles.applyBtn}
-                onPress={() => setFilterVisible(false)}
-              >
-                <Text style={styles.applyText}>Close</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+      {/* 🔥 FILTER SIDEBAR */}
+      <ProductFilterSidebar
+        visible={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        onApply={(payload) => {
+          setFilters(payload);
+          setFiltersOpen(false);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -221,17 +209,29 @@ export default function ProductListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   header: { padding: 16, borderBottomWidth: 1, borderColor: "#EEE" },
-  headerTitle: { fontSize: 18, fontWeight: "700", marginBottom: 10 },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: { fontSize: 18, fontWeight: "700" },
   searchBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     borderRadius: 8,
-    flex: 1,
+    marginTop: 10,
   },
   searchInput: { flex: 1, paddingVertical: 8, paddingLeft: 8 },
-  filterBtn: { backgroundColor: "#000", padding: 8, marginLeft: 8, borderRadius: 8 },
+  categoryButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#EEE",
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  categorySelected: { backgroundColor: "#007bff" },
   card: { width: "48%", marginBottom: 16 },
   heart: {
     position: "absolute",
@@ -248,12 +248,10 @@ const styles = StyleSheet.create({
   name: { fontSize: 13, color: "#555", marginVertical: 4 },
   priceRow: { flexDirection: "row", alignItems: "center" },
   price: { fontSize: 15, fontWeight: "700", marginRight: 6 },
-  mrp: { fontSize: 13, color: "#888", textDecorationLine: "line-through", marginRight: 6 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center" },
-  modalContent: { backgroundColor: "#FFF", margin: 20, borderRadius: 8, padding: 16, maxHeight: "80%" },
-  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
-  label: { fontSize: 14, marginTop: 8 },
-  input: { borderWidth: 1, borderColor: "#DDD", borderRadius: 6, padding: 10, marginTop: 4 },
-  applyBtn: { backgroundColor: "#000", padding: 12, borderRadius: 6, marginTop: 12, alignItems: "center" },
-  applyText: { color: "#FFF", fontWeight: "700" },
+  mrp: {
+    fontSize: 13,
+    color: "#888",
+    textDecorationLine: "line-through",
+    marginRight: 6,
+  },
 });
