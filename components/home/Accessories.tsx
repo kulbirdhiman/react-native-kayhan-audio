@@ -1,12 +1,16 @@
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import React from "react";
 import { styles } from "./homeStyle";
 import { useNewgetAccessoriesProductsQuery } from "store/api/home/HomeAPi";
+import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const IMG_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
 const Accessories = () => {
+   const insets = useSafeAreaInsets();
   const { data, isLoading } = useNewgetAccessoriesProductsQuery({});
+  const navigation = useNavigation<any>();
 
   if (isLoading) {
     return (
@@ -16,7 +20,6 @@ const Accessories = () => {
     );
   }
 
-  // ✅ Convert object → array
   const accessoriesArray = Object.values(data?.data?.result || []);
 
   return (
@@ -33,7 +36,16 @@ const Accessories = () => {
             : "https://via.placeholder.com/150";
 
           return (
-            <View key={product.id ?? index} style={styles.accessoryCard}>
+            <TouchableOpacity
+              key={product?.id ?? index}
+              style={styles.accessoryCard}
+              activeOpacity={0.8}
+              onPress={() =>
+                navigation.navigate("ProductDetail", {
+                  productId: product.slug, // 👈 pass slug or id
+                })
+              }
+            >
               <Image
                 source={{ uri: imageUrl }}
                 style={styles.accImage}
@@ -42,7 +54,7 @@ const Accessories = () => {
               <Text style={styles.accText} numberOfLines={2}>
                 {product.name}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>

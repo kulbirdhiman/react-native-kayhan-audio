@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { styles } from "./homeStyle";
 import { useNewgetRecommendedProductsQuery } from "store/api/home/HomeAPi";
+import { useNavigation } from "@react-navigation/native";
 
 const FeaturedProduct = () => {
   const { data, isLoading } = useNewgetRecommendedProductsQuery({});
@@ -31,6 +32,7 @@ const FeaturedProduct = () => {
       </View>
     );
   }
+  const navigation = useNavigation<any>();
 
   return (
     <View style={styles.section}>
@@ -59,7 +61,7 @@ const FeaturedProduct = () => {
                 ${item.regular_price}
               </Text>
 
-              <TouchableOpacity style={styles.shopBtn}>
+              <TouchableOpacity onPress={() => navigation.navigate("ProductDetail", { productId: item.slug })} style={styles.shopBtn}>
                 <Text style={styles.shopText}>Shop Now</Text>
               </TouchableOpacity>
             </View>

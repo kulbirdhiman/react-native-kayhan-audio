@@ -9,12 +9,13 @@ import {
   Dimensions,
   ScrollView,
   Alert,
-  Platform,
 } from "react-native";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useDispatch } from "react-redux";
+import RenderHTML from "react-native-render-html";
+import { useWindowDimensions } from "react-native";
 
 import type { RootStackParamList } from "../navigation/StackNavigator";
 import { useProductDetailForShopQuery } from "store/api/productApi";
@@ -38,6 +39,7 @@ export default function ProductDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavProps>();
   const dispatch = useDispatch<AppDispatch>();
+  const { width } = useWindowDimensions();
 
   const slug = (route.params as any)?.productId;
   const { data, isLoading, isError } =
@@ -68,34 +70,34 @@ export default function ProductDetailScreen() {
     product.images?.length > 0
       ? product.images.map((i: any) => IMAGE_BASE_URL + i.image)
       : product.image
-      ? [IMAGE_BASE_URL + product.image]
-      : [];
+        ? [IMAGE_BASE_URL + product.image]
+        : [];
 
   /* ---------------- ADD TO CART ---------------- */
   const handleAddToCart = () => {
     dispatch(
       addToCart({
         id: product.id,
-        name: product.name,
+        name: String(product.name),
         price: product.discount_price || product.regular_price,
         image: images[0],
         qty: 1,
       })
     );
 
-    Alert.alert("✅ Added to Cart", product.name);
+    Alert.alert("✅ Added to Cart", String(product.name));
   };
 
   const handleBuyNow = () => {
     handleAddToCart();
     navigation.navigate("Cart");
   };
-
+  console.log(product.description, "this is dis")
   return (
     <View style={styles.container}>
       {/* Back Button */}
       <TouchableOpacity style={styles.back} onPress={navigation.goBack}>
-        <Ionicons name="arrow-back" size={22} />
+        <Ionicons name="arrow-back" size={22} color="#000" />
       </TouchableOpacity>
 
       {/* Image Slider */}
@@ -118,7 +120,7 @@ export default function ProductDetailScreen() {
 
       {/* Dots */}
       <View style={styles.dots}>
-        {images.map((_:any, i:any) => (
+        {images.map((_: any, i: number) => (
           <View
             key={i}
             style={[styles.dot, activeImage === i && styles.activeDot]}
@@ -130,27 +132,34 @@ export default function ProductDetailScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={{
-          paddingBottom: BOTTOM_BAR_HEIGHT + 20, // 🔥 important
+          paddingBottom: BOTTOM_BAR_HEIGHT + 20,
         }}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.brand}>{product.brand}</Text>
-        <Text style={styles.name}>{product.name}</Text>
+        <Text style={styles.brand}>
+          {String(product.brand || "")}
+        </Text>
+
+        <Text style={styles.name}>
+          {String(product.name)}
+        </Text>
 
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${product.regular_price}</Text>
+          <Text style={styles.price}>
+            ${product.regular_price}
+          </Text>
+
           {product.discount_price && (
             <>
               <Text style={styles.mrp}>
                 ${product.discount_price}
               </Text>
               <Text style={styles.discount}>
-                {Math.round(
+                {`${Math.round(
                   ((product.regular_price - product.discount_price) /
                     product.regular_price) *
-                    100
-                )}
-                % OFF
+                  100
+                )}% OFF`}
               </Text>
             </>
           )}
@@ -181,22 +190,41 @@ export default function ProductDetailScreen() {
 
         <View style={styles.tabContent}>
           {activeTab === "Description" && (
-            <Text style={styles.text}>
-              {product.description || "No description available"}
-            </Text>
+            <RenderHTML
+              contentWidth={width}
+              source={{
+                html:
+                  product.description ||
+                  "<p>No description available</p>",
+              }}
+              tagsStyles={htmlStyles}
+              enableExperimentalMarginCollapsing={true}
+              renderersProps={{
+                img: {
+                  enableExperimentalPercentWidth: true,
+                },
+              }}
+            />
           )}
+
 
           {activeTab === "Specifications" && (
             <Text style={styles.text}>
               {product.specification
-                ? product.specification.replace(/<[^>]+>/g, "")
+                ? String(
+                  product.specification.replace(/<[^>]+>/g, "")
+                )
                 : "No specifications available"}
             </Text>
           )}
 
           {activeTab === "Demo Video" && (
             <View style={styles.videoBox}>
-              <Ionicons name="play-circle" size={60} />
+              <Ionicons
+                name="play-circle"
+                size={60}
+                color="#000"
+              />
               <Text style={styles.videoText}>
                 Demo video coming soon
               </Text>
@@ -205,13 +233,19 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* 🔥 FIXED BOTTOM BAR */}
+      {/* FIXED BOTTOM BAR */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
+        <TouchableOpacity
+          style={styles.cartBtn}
+          onPress={handleAddToCart}
+        >
           <Text style={styles.cartText}>Add to Cart</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.buyBtn} onPress={handleBuyNow}>
+        <TouchableOpacity
+          style={styles.buyBtn}
+          onPress={handleBuyNow}
+        >
           <Text style={styles.buyText}>Buy Now</Text>
         </TouchableOpacity>
       </View>
@@ -238,7 +272,6 @@ const styles = StyleSheet.create({
 
   image: {
     width,
-    // height: IMAGE_HEIGHT,
     resizeMode: "contain",
   },
 
@@ -259,17 +292,15 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
 
   brand: { fontSize: 15, fontWeight: "700" },
-  // name: { fontSize: 22,color: "#555", marginVertical: 6 ,  },
-  name: { 
-  fontSize: 22,
-  color: "#0000",
-  marginVertical: 6,
-  fontWeight: "700", // <-- makes it bold
-},
-
+  name: {
+    fontSize: 22,
+    color: "#000",
+    marginVertical: 6,
+    fontWeight: "700",
+  },
 
   priceRow: { flexDirection: "row", alignItems: "center" },
-  price: { fontSize: 20, fontWeight: "800", marginRight: 8 , },
+  price: { fontSize: 20, fontWeight: "800", marginRight: 8 },
   mrp: {
     fontSize: 14,
     color: "#888",
@@ -295,24 +326,16 @@ const styles = StyleSheet.create({
   videoBox: { alignItems: "center", marginTop: 30 },
   videoText: { marginTop: 8, color: "#777" },
 
-  /* 🔥 FIXED POSITION */
   bottomBar: {
     position: "absolute",
-    bottom: 30 , 
+    bottom: 30,
     left: 12,
     right: 12,
-
     flexDirection: "row",
     padding: 10,
     backgroundColor: "#fff",
     borderRadius: 12,
-
     elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-
     zIndex: 100,
   },
 
@@ -333,3 +356,27 @@ const styles = StyleSheet.create({
   cartText: { textAlign: "center", fontWeight: "700" },
   buyText: { textAlign: "center", fontWeight: "700", color: "#fff" },
 });
+
+
+const htmlStyles = {
+  p: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#555",
+    marginBottom: 8,
+  },
+  li: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#555",
+  },
+  ul: {
+    paddingLeft: 20,
+    marginBottom: 10,
+  },
+  img: {
+    width: "100%",
+    height: "auto",
+    marginVertical: 10,
+  },
+};

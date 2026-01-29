@@ -8,12 +8,14 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 // 🔗 CloudFront base URL
 const IMG_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
 export default function ComboDeals() {
   const { data, isLoading, isError } = useGetAllComboDealsQuery({});
+  const navigation = useNavigation<any>();
 
   if (isLoading) {
     return <Text style={{ padding: 16 }}>Loading combo deals...</Text>;
@@ -80,7 +82,7 @@ export default function ComboDeals() {
               </Text>
 
               {/* CTA */}
-              <TouchableOpacity style={styles.button}>
+              <TouchableOpacity onPress={() => navigation.navigate("ProductDetail", { productId: item.slug })} style={styles.button}>
                 <Text style={styles.buttonText}>Grab Deal</Text>
               </TouchableOpacity>
             </View>

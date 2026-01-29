@@ -1,3 +1,4 @@
+import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import {
   View,
@@ -15,6 +16,7 @@ const IMG_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 export default function HotDeals() {
   const { data, isLoading, isError } =
     useNewgetRecommendedProductsQuery({});
+  const navigation = useNavigation<any>();
 
   const products = data?.data?.result || [];
 
@@ -79,7 +81,7 @@ export default function HotDeals() {
                   )}
                 </View>
 
-                <TouchableOpacity style={styles.button}>
+                <TouchableOpacity onPress={() => navigation.navigate("ProductDetail", { productId: item.slug })} style={styles.button}>
                   <Text style={styles.buttonText}>Buy Now</Text>
                 </TouchableOpacity>
               </View>
