@@ -14,7 +14,7 @@ const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
   const { token } = useSelector((state: RootState) => state.auth);
-  console.log(token , "this is token")
+  // console.log(token , "this is token")
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -32,9 +32,9 @@ export default function BottomTabNavigator() {
             case "Search":
               iconName = focused ? "search" : "search-outline";
               break;
-            case "Shop":
-              iconName = focused ? "grid" : "grid-outline";
-              break;
+            // case "Shop":
+            //   iconName = focused ? "grid" : "grid-outline";
+            //   break;
             case "Cart":
               iconName = focused ? "cart" : "cart-outline";
               break;
@@ -49,7 +49,7 @@ export default function BottomTabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={ProductListScreen} />
-      <Tab.Screen name="Shop" component={ProductListScreen} />
+      {/* <Tab.Screen name="Shop" component={ProductListScreen} /> */}
       <Tab.Screen name="Cart" component={CartScreen} />
       
       {/* Dynamic Account tab */}

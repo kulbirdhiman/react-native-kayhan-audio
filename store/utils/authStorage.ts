@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-// Only store token in SecureStore
+// authStorage.ts
 export const saveAuth = async (token: string) => {
   await SecureStore.setItemAsync("token", token);
 };
@@ -13,3 +13,4 @@ export const loadAuth = async () => {
 export const clearAuth = async () => {
   await SecureStore.deleteItemAsync("token");
 };
+

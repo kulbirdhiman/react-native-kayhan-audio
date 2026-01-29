@@ -1,4 +1,4 @@
-import { apiSlice } from "./apiSlice";
+import apiSlice from "../apiSlice";
 
 type ShopProductParams = {
   page?: number;
@@ -13,7 +13,7 @@ type ShopProductParams = {
 export const productApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // Endpoint to list products with filters
-    listProductForShop: builder.query<any, ShopProductParams>({
+    listProductForShop: builder.query({
       query: (params) => ({
         url: "/v1/product/list/shop",
         params,

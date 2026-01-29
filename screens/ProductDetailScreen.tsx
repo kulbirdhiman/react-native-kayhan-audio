@@ -18,13 +18,13 @@ import RenderHTML from "react-native-render-html";
 import { useWindowDimensions } from "react-native";
 
 import type { RootStackParamList } from "../navigation/StackNavigator";
-import { useProductDetailForShopQuery } from "store/api/productApi";
 import type { AppDispatch } from "store/store";
 import { addToCart } from "store/actions/CartAction";
+import { useProductDetailForShopQuery } from "store/api/product/productApi";
 
 const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 const { width } = Dimensions.get("window");
-const IMAGE_HEIGHT = width * 0.6;
+const IMAGE_HEIGHT = width * 1; // Full visible image
 const BOTTOM_BAR_HEIGHT = 70;
 
 const TABS = ["Description", "Specifications", "Demo Video"];
@@ -70,8 +70,8 @@ export default function ProductDetailScreen() {
     product.images?.length > 0
       ? product.images.map((i: any) => IMAGE_BASE_URL + i.image)
       : product.image
-        ? [IMAGE_BASE_URL + product.image]
-        : [];
+      ? [IMAGE_BASE_URL + product.image]
+      : [];
 
   /* ---------------- ADD TO CART ---------------- */
   const handleAddToCart = () => {
@@ -92,7 +92,7 @@ export default function ProductDetailScreen() {
     handleAddToCart();
     navigation.navigate("Cart");
   };
-  console.log(product.description, "this is dis")
+
   return (
     <View style={styles.container}>
       {/* Back Button */}
@@ -109,9 +109,7 @@ export default function ProductDetailScreen() {
         keyExtractor={(_, i) => i.toString()}
         style={{ height: IMAGE_HEIGHT }}
         onMomentumScrollEnd={(e) =>
-          setActiveImage(
-            Math.round(e.nativeEvent.contentOffset.x / width)
-          )
+          setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))
         }
         renderItem={({ item }) => (
           <Image source={{ uri: item }} style={styles.image} />
@@ -132,7 +130,7 @@ export default function ProductDetailScreen() {
       <ScrollView
         style={styles.content}
         contentContainerStyle={{
-          paddingBottom: BOTTOM_BAR_HEIGHT + 20,
+          paddingBottom: BOTTOM_BAR_HEIGHT + 30,
         }}
         showsVerticalScrollIndicator={false}
       >
@@ -144,24 +142,33 @@ export default function ProductDetailScreen() {
           {String(product.name)}
         </Text>
 
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>
-            ${product.regular_price}
+        {/* SKU */}
+        <Text style={styles.sku}>
+          SKU: {product.sku || "N/A"}
+        </Text>
+
+        {/* PRICE */}
+        <View style={styles.priceBox}>
+          <Text style={styles.finalPrice}>
+            ${product.discount_price || product.regular_price}
           </Text>
 
           {product.discount_price && (
-            <>
+            <View style={styles.mrpRow}>
               <Text style={styles.mrp}>
-                ${product.discount_price}
+                ${product.regular_price}
               </Text>
-              <Text style={styles.discount}>
-                {`${Math.round(
-                  ((product.regular_price - product.discount_price) /
-                    product.regular_price) *
-                  100
-                )}% OFF`}
-              </Text>
-            </>
+
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>
+                  {`${Math.round(
+                    ((product.regular_price - product.discount_price) /
+                      product.regular_price) *
+                      100
+                  )}% OFF`}
+                </Text>
+              </View>
+            </View>
           )}
         </View>
 
@@ -198,7 +205,6 @@ export default function ProductDetailScreen() {
                   "<p>No description available</p>",
               }}
               tagsStyles={htmlStyles}
-              enableExperimentalMarginCollapsing={true}
               renderersProps={{
                 img: {
                   enableExperimentalPercentWidth: true,
@@ -207,13 +213,12 @@ export default function ProductDetailScreen() {
             />
           )}
 
-
           {activeTab === "Specifications" && (
             <Text style={styles.text}>
               {product.specification
                 ? String(
-                  product.specification.replace(/<[^>]+>/g, "")
-                )
+                    product.specification.replace(/<[^>]+>/g, "")
+                  )
                 : "No specifications available"}
             </Text>
           )}
@@ -233,7 +238,7 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* FIXED BOTTOM BAR */}
+      {/* BOTTOM BAR */}
       <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.cartBtn}
@@ -272,13 +277,15 @@ const styles = StyleSheet.create({
 
   image: {
     width,
-    resizeMode: "contain",
+    marginTop : 40,
+    // height: IMAGE_HEIGHT,
+    resizeMode: "cover",
   },
 
   dots: {
     flexDirection: "row",
     justifyContent: "center",
-    marginVertical: 6,
+    marginVertical: 8,
   },
   dot: {
     width: 7,
@@ -294,20 +301,48 @@ const styles = StyleSheet.create({
   brand: { fontSize: 15, fontWeight: "700" },
   name: {
     fontSize: 22,
-    color: "#000",
-    marginVertical: 6,
     fontWeight: "700",
+    marginTop: 4,
   },
 
-  priceRow: { flexDirection: "row", alignItems: "center" },
-  price: { fontSize: 20, fontWeight: "800", marginRight: 8 },
+  sku: {
+    fontSize: 13,
+    color: "#777",
+    marginBottom: 8,
+  },
+
+  priceBox: { marginVertical: 10 },
+
+  finalPrice: {
+    fontSize: 26,
+    fontWeight: "800",
+  },
+
+  mrpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+
   mrp: {
     fontSize: 14,
     color: "#888",
     textDecorationLine: "line-through",
-    marginRight: 8,
+    marginRight: 10,
   },
-  discount: { color: "#ff3f6c", fontWeight: "700" },
+
+  discountBadge: {
+    backgroundColor: "#ff3f6c20",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+
+  discountText: {
+    color: "#ff3f6c",
+    fontWeight: "700",
+    fontSize: 12,
+  },
 
   tabs: {
     flexDirection: "row",
@@ -336,7 +371,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 12,
     elevation: 10,
-    zIndex: 100,
   },
 
   cartBtn: {
@@ -354,9 +388,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   cartText: { textAlign: "center", fontWeight: "700" },
-  buyText: { textAlign: "center", fontWeight: "700", color: "#fff" },
+  buyText: {
+    textAlign: "center",
+    fontWeight: "700",
+    color: "#fff",
+  },
 });
-
 
 const htmlStyles = {
   p: {
