@@ -8,20 +8,16 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useListProductForShopQuery } from "store/api/productApi";
-import type { RootStackParamList } from "../navigation/StackNavigator";
+import CarModelPicker from "components/global/CarModelPicker";
 
-const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/"; // Base URL for images
-
-// type ProductListScreenNavigationProp = NativeStackNavigationProp<
-//   RootStackParamList,
-//   "ProductList"
-// >;
+const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
 export default function ProductListScreen() {
   const navigation = useNavigation<any>();
@@ -30,26 +26,44 @@ export default function ProductListScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [favorites, setFavorites] = useState<number[]>([]);
 
-  // Debounce search input
+  // ---------------- FILTER STATES ----------------
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [category, setCategory] = useState(""); // can map to Make
+  const [company, setCompany] = useState(""); // optional
+  const [model, setModel] = useState(""); // Model slug
+  const [year, setYear] = useState(""); // Year string
+  const [limit, setLimit] = useState(15);
+
+  // ---------------- DEBOUNCE SEARCH ----------------
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Fetch products using RTK Query
-  const { data, isLoading, isError, error } = useListProductForShopQuery({
+  // ---------------- FETCH PRODUCTS ----------------
+  const { data, isLoading, isError } = useListProductForShopQuery({
     page: 1,
-    limit: 15,
+    limit,
     search: debouncedSearch,
+    category,
+    company,
+    model,
+    // year,
   });
+
   const products = data?.data?.result || [];
 
+  // ---------------- FAVORITES ----------------
   const toggleFavorite = (id: number) => {
     setFavorites(prev =>
       prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
     );
   };
 
+  // ---------------- APPLY FILTERS ----------------
+  const applyFilters = () => setFilterVisible(false);
+
+  // ---------------- RENDER PRODUCT ITEM ----------------
   const renderItem = ({ item }: any) => {
     const image = item.images?.[0]?.image
       ? IMAGE_BASE_URL + item.images[0].image
@@ -80,7 +94,6 @@ export default function ProductListScreen() {
           <Text numberOfLines={2} style={styles.name}>
             {item.name}
           </Text>
-
           <View style={styles.priceRow}>
             {item.discount_price > 0 ? (
               <>
@@ -96,8 +109,8 @@ export default function ProductListScreen() {
     );
   };
 
-  if (isLoading)
-    return <ActivityIndicator style={{ flex: 1 }} size="large" />;
+  // ---------------- LOADING / ERROR ----------------
+  if (isLoading) return <ActivityIndicator style={{ flex: 1 }} size="large" />;
   if (isError)
     return (
       <Text style={{ flex: 1, textAlign: "center", marginTop: 20 }}>
@@ -107,21 +120,29 @@ export default function ProductListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Search */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Products</Text>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color="#666" />
-          <TextInput
-            placeholder="Search products"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchInput}
-          />
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color="#666" />
+            <TextInput
+              placeholder="Search products"
+              value={search}
+              onChangeText={setSearch}
+              style={styles.searchInput}
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.filterBtn}
+            onPress={() => setFilterVisible(true)}
+          >
+            <Ionicons name="funnel-outline" size={24} color="#FFF" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Product List */}
+      {/* PRODUCT LIST */}
       <FlatList
         data={products}
         renderItem={renderItem}
@@ -131,10 +152,72 @@ export default function ProductListScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20, paddingHorizontal: 8 }}
       />
+
+      {/* FILTER MODAL */}
+      <Modal visible={filterVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Filters</Text>
+            <ScrollView>
+              {/* CATEGORY */}
+              <Text style={styles.label}>Category / Make</Text>
+              <TextInput
+                placeholder="Enter category slug"
+                style={styles.input}
+                value={category}
+                onChangeText={setCategory}
+              />
+
+              {/* COMPANY */}
+              <Text style={styles.label}>Company</Text>
+              <TextInput
+                placeholder="Enter company slug"
+                style={styles.input}
+                value={company}
+                onChangeText={setCompany}
+              />
+
+              {/* CAR MODEL PICKER */}
+              <Text style={styles.label}>Car Model & Year</Text>
+              <CarModelPicker
+                onSelect={({ make, model: m, submodel, year: y }) => {
+                  setCategory(make); // map to category
+                  setModel(m);
+                  setYear(y || "");
+                }}
+              />
+
+              {/* PRODUCTS PER PAGE */}
+              <Text style={styles.label}>Products per page</Text>
+              <TextInput
+                placeholder="Limit"
+                style={styles.input}
+                value={limit.toString()}
+                onChangeText={text => setLimit(Number(text))}
+                keyboardType="numeric"
+              />
+
+              {/* APPLY BUTTON */}
+              <TouchableOpacity style={styles.applyBtn} onPress={applyFilters}>
+                <Text style={styles.applyText}>Apply Filters</Text>
+              </TouchableOpacity>
+
+              {/* CLOSE BUTTON */}
+              <TouchableOpacity
+                style={styles.applyBtn}
+                onPress={() => setFilterVisible(false)}
+              >
+                <Text style={styles.applyText}>Close</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
+// ---------------- STYLES ----------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFF" },
   header: { padding: 16, borderBottomWidth: 1, borderColor: "#EEE" },
@@ -145,8 +228,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
     paddingHorizontal: 12,
     borderRadius: 8,
+    flex: 1,
   },
   searchInput: { flex: 1, paddingVertical: 8, paddingLeft: 8 },
+  filterBtn: { backgroundColor: "#000", padding: 8, marginLeft: 8, borderRadius: 8 },
   card: { width: "48%", marginBottom: 16 },
   heart: {
     position: "absolute",
@@ -164,4 +249,11 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: "row", alignItems: "center" },
   price: { fontSize: 15, fontWeight: "700", marginRight: 6 },
   mrp: { fontSize: 13, color: "#888", textDecorationLine: "line-through", marginRight: 6 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center" },
+  modalContent: { backgroundColor: "#FFF", margin: 20, borderRadius: 8, padding: 16, maxHeight: "80%" },
+  modalTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
+  label: { fontSize: 14, marginTop: 8 },
+  input: { borderWidth: 1, borderColor: "#DDD", borderRadius: 6, padding: 10, marginTop: 4 },
+  applyBtn: { backgroundColor: "#000", padding: 12, borderRadius: 6, marginTop: 12, alignItems: "center" },
+  applyText: { color: "#FFF", fontWeight: "700" },
 });

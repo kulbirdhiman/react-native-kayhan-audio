@@ -8,17 +8,24 @@ import {
   FlatList,
   Dimensions,
   ScrollView,
+  Alert,
 } from "react-native";
 import { useRoute, useNavigation, RouteProp } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useDispatch } from "react-redux";
+import RenderHTML from "react-native-render-html";
+import { useWindowDimensions } from "react-native";
+
 import type { RootStackParamList } from "../navigation/StackNavigator";
 import { useProductDetailForShopQuery } from "store/api/productApi";
+import type { AppDispatch } from "store/store";
+import { addToCart } from "store/actions/CartAction";
 
 const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
-
 const { width } = Dimensions.get("window");
 const IMAGE_HEIGHT = width * 0.6;
+const BOTTOM_BAR_HEIGHT = 70;
 
 const TABS = ["Description", "Specifications", "Demo Video"];
 
@@ -31,9 +38,10 @@ type NavProps = NativeStackNavigationProp<
 export default function ProductDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavProps>();
+  const dispatch = useDispatch<AppDispatch>();
+  const { width } = useWindowDimensions();
 
   const slug = (route.params as any)?.productId;
-
   const { data, isLoading, isError } =
     useProductDetailForShopQuery(slug);
 
@@ -57,21 +65,39 @@ export default function ProductDetailScreen() {
   }
 
   const product = data.data.result;
-  const relatedProducts = data.data.relatedProduct || [];
 
-  // ✅ Safe images
   const images =
     product.images?.length > 0
       ? product.images.map((i: any) => IMAGE_BASE_URL + i.image)
       : product.image
-      ? [IMAGE_BASE_URL + product.image]
-      : [];
+        ? [IMAGE_BASE_URL + product.image]
+        : [];
 
+  /* ---------------- ADD TO CART ---------------- */
+  const handleAddToCart = () => {
+    dispatch(
+      addToCart({
+        id: product.id,
+        name: String(product.name),
+        price: product.discount_price || product.regular_price,
+        image: images[0],
+        qty: 1,
+      })
+    );
+
+    Alert.alert("✅ Added to Cart", String(product.name));
+  };
+
+  const handleBuyNow = () => {
+    handleAddToCart();
+    navigation.navigate("Cart");
+  };
+  console.log(product.description, "this is dis")
   return (
     <View style={styles.container}>
       {/* Back Button */}
       <TouchableOpacity style={styles.back} onPress={navigation.goBack}>
-        <Ionicons name="arrow-back" size={22} />
+        <Ionicons name="arrow-back" size={22} color="#000" />
       </TouchableOpacity>
 
       {/* Image Slider */}
@@ -94,7 +120,7 @@ export default function ProductDetailScreen() {
 
       {/* Dots */}
       <View style={styles.dots}>
-        {images.map((_:any, i:any) => (
+        {images.map((_: any, i: number) => (
           <View
             key={i}
             style={[styles.dot, activeImage === i && styles.activeDot]}
@@ -102,25 +128,38 @@ export default function ProductDetailScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Product Info */}
-        <Text style={styles.brand}>{product.brand}</Text>
-        <Text style={styles.name}>{product.name}</Text>
+      {/* CONTENT */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={{
+          paddingBottom: BOTTOM_BAR_HEIGHT + 20,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.brand}>
+          {String(product.brand || "")}
+        </Text>
+
+        <Text style={styles.name}>
+          {String(product.name)}
+        </Text>
 
         <View style={styles.priceRow}>
-          <Text style={styles.price}>${product.regular_price}</Text>
+          <Text style={styles.price}>
+            ${product.regular_price}
+          </Text>
+
           {product.discount_price && (
             <>
               <Text style={styles.mrp}>
                 ${product.discount_price}
               </Text>
               <Text style={styles.discount}>
-                {Math.round(
+                {`${Math.round(
                   ((product.regular_price - product.discount_price) /
                     product.regular_price) *
-                    100
-                )}
-                % OFF
+                  100
+                )}% OFF`}
               </Text>
             </>
           )}
@@ -149,90 +188,64 @@ export default function ProductDetailScreen() {
           ))}
         </View>
 
-        {/* Tab Content */}
         <View style={styles.tabContent}>
           {activeTab === "Description" && (
-            <Text style={styles.text}>
-              {product.description ||
-                product.seo_description ||
-                "No description available"}
-            </Text>
+            <RenderHTML
+              contentWidth={width}
+              source={{
+                html:
+                  product.description ||
+                  "<p>No description available</p>",
+              }}
+              tagsStyles={htmlStyles}
+              enableExperimentalMarginCollapsing={true}
+              renderersProps={{
+                img: {
+                  enableExperimentalPercentWidth: true,
+                },
+              }}
+            />
           )}
+
 
           {activeTab === "Specifications" && (
             <Text style={styles.text}>
               {product.specification
-                ? product.specification.replace(/<[^>]+>/g, "")
+                ? String(
+                  product.specification.replace(/<[^>]+>/g, "")
+                )
                 : "No specifications available"}
             </Text>
           )}
 
           {activeTab === "Demo Video" && (
             <View style={styles.videoBox}>
-              <Ionicons name="play-circle" size={60} />
+              <Ionicons
+                name="play-circle"
+                size={60}
+                color="#000"
+              />
               <Text style={styles.videoText}>
                 Demo video coming soon
               </Text>
             </View>
           )}
         </View>
-
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
-          <View style={{ marginTop: 24 }}>
-            <Text style={styles.sectionTitle}>
-              Related Products
-            </Text>
-
-            <FlatList
-              data={relatedProducts}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item: any) => item.id.toString()}
-              renderItem={({ item }: any) => {
-                const img =
-                  item.images?.length > 0
-                    ? IMAGE_BASE_URL + item.images[0].image
-                    : null;
-
-                return (
-                  <TouchableOpacity
-                    style={styles.relatedCard}
-                    onPress={() =>
-                      navigation.push("ProductDetail", {
-                        slug: item.slug,
-                      })
-                    }
-                  >
-                    {img && (
-                      <Image
-                        source={{ uri: img }}
-                        style={styles.relatedImage}
-                      />
-                    )}
-                    <Text
-                      numberOfLines={2}
-                      style={styles.relatedName}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text style={styles.relatedPrice}>
-                      ${item.regular_price}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              }}
-            />
-          </View>
-        )}
       </ScrollView>
 
-      {/* Bottom Bar */}
+      {/* FIXED BOTTOM BAR */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.cartBtn}>
+        <TouchableOpacity
+          style={styles.cartBtn}
+          onPress={handleAddToCart}
+        >
           <Text style={styles.cartText}>Add to Cart</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.buyBtn}>
+
+        <TouchableOpacity
+          style={styles.buyBtn}
+          onPress={handleBuyNow}
+        >
           <Text style={styles.buyText}>Buy Now</Text>
         </TouchableOpacity>
       </View>
@@ -250,7 +263,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 50,
     left: 16,
-    zIndex: 10,
+    zIndex: 20,
     backgroundColor: "#fff",
     padding: 8,
     borderRadius: 20,
@@ -259,7 +272,6 @@ const styles = StyleSheet.create({
 
   image: {
     width,
-    height: IMAGE_HEIGHT,
     resizeMode: "contain",
   },
 
@@ -280,10 +292,15 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
 
   brand: { fontSize: 15, fontWeight: "700" },
-  name: { fontSize: 14, color: "#555", marginVertical: 6 },
+  name: {
+    fontSize: 22,
+    color: "#000",
+    marginVertical: 6,
+    fontWeight: "700",
+  },
 
   priceRow: { flexDirection: "row", alignItems: "center" },
-  price: { fontSize: 20, fontWeight: "700", marginRight: 8 },
+  price: { fontSize: 20, fontWeight: "800", marginRight: 8 },
   mrp: {
     fontSize: 14,
     color: "#888",
@@ -309,53 +326,57 @@ const styles = StyleSheet.create({
   videoBox: { alignItems: "center", marginTop: 30 },
   videoText: { marginTop: 8, color: "#777" },
 
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-
-  relatedCard: {
-    width: 150,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 8,
+  bottomBar: {
+    position: "absolute",
+    bottom: 30,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
     padding: 10,
     backgroundColor: "#fff",
+    borderRadius: 12,
+    elevation: 10,
+    zIndex: 100,
   },
-  relatedImage: {
-    width: "100%",
-    height: 100,
-    resizeMode: "contain",
-  },
-  relatedName: { fontSize: 13, marginTop: 6 },
-  relatedPrice: { fontWeight: "700", marginTop: 4 },
 
-  bottomBar: {
-    flexDirection: "row",
-    padding: 12,
-    borderTopWidth: 1,
-    borderColor: "#eee",
-  },
   cartBtn: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#000",
     padding: 14,
-    borderRadius: 6,
+    borderRadius: 8,
     marginRight: 10,
   },
   buyBtn: {
     flex: 1,
     backgroundColor: "#000",
     padding: 14,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   cartText: { textAlign: "center", fontWeight: "700" },
-  buyText: {
-    textAlign: "center",
-    fontWeight: "700",
-    color: "#fff",
-  },
+  buyText: { textAlign: "center", fontWeight: "700", color: "#fff" },
 });
+
+
+const htmlStyles = {
+  p: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#555",
+    marginBottom: 8,
+  },
+  li: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#555",
+  },
+  ul: {
+    paddingLeft: 20,
+    marginBottom: 10,
+  },
+  img: {
+    width: "100%",
+    height: "auto",
+    marginVertical: 10,
+  },
+};

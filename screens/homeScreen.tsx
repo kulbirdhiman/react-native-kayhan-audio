@@ -12,6 +12,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ComboDeals from "components/home/comboDeal";
 import HotDeals from "components/home/DealSection";
 import SupportSection from "components/home/SupportSection";
+import FeaturedProduct from "components/home/FeaturedProduct";
+import Accessories from "components/home/Accessories";
+import FindYourVehicle from "components/home/FindYourVhecle";
 // import FindSteeringWheel from "components/home/StreeringWheel";
 
 /* ---------------- TYPES ---------------- */
@@ -42,91 +45,12 @@ export default function HomeScreen() {
 
         {/* HERO BANNER */}
         <Image
-          source={require("../assets/offers/MK 1 and MK 2 (1).png")}
+          source={require("../assets/offers/Banner.png")}
           style={styles.banner}
         />
 
         {/* VEHICLE SELECTION */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Select Vehicle</Text>
-
-          {(company || model || subModel || year) && (
-            <Text style={styles.selectedText}>
-              {company} {model} {subModel} {year}
-            </Text>
-          )}
-
-          {/* COMPANY */}
-          {step === "company" && (
-            <View style={styles.row}>
-              {Object.keys(VEHICLE_DATA).map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.vehicleCard}
-                  onPress={() => {
-                    setCompany(item);
-                    resetBelow();
-                    setStep("model");
-                  }}
-                >
-                  <Text style={styles.vehicleText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* MODEL */}
-          {step === "model" && company && (
-            <View style={styles.row}>
-              {Object.keys(VEHICLE_DATA[company]).map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.vehicleCard}
-                  onPress={() => {
-                    setModel(item);
-                    setStep("subModel");
-                  }}
-                >
-                  <Text style={styles.vehicleText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* SUB MODEL */}
-          {step === "subModel" && company && model && (
-            <View style={styles.row}>
-              {Object.keys(VEHICLE_DATA[company][model]).map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.vehicleCard}
-                  onPress={() => {
-                    setSubModel(item);
-                    setStep("year");
-                  }}
-                >
-                  <Text style={styles.vehicleText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* YEAR */}
-          {step === "year" && company && model && subModel && (
-            <View style={styles.row}>
-              {VEHICLE_DATA[company][model][subModel].map((item: string) => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.vehicleCard}
-                  onPress={() => setYear(item)}
-                >
-                  <Text style={styles.vehicleText}>{item}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
+       {/* <FindYourVehicle /> */}
         {/* CATEGORIES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Categories</Text>
@@ -141,35 +65,11 @@ export default function HomeScreen() {
         </View>
 
         {/* FEATURED PRODUCTS */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Featured Products</Text>
-          {PRODUCTS.map((item, index) => (
-            <View key={index} style={styles.productCard}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View style={styles.productInfo}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.productPrice}>${item.price}</Text>
-                <TouchableOpacity style={styles.shopBtn}>
-                  <Text style={styles.shopText}>Shop Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-        </View>
+        <FeaturedProduct />
         <ComboDeals />
         <HotDeals />
         {/* ACCESSORIES */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Accessories</Text>
-          <View style={styles.grid}>
-            {ACCESSORIES.map((item, index) => (
-              <View key={index} style={styles.accessoryCard}>
-                <Image source={{ uri: item.image }} style={styles.accImage} />
-                <Text style={styles.accText}>{item.name}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        <Accessories />
         <SupportSection />
         {/* <FindSteeringWheel /> */}
         {/* NEWSLETTER */}
@@ -243,43 +143,8 @@ const CATEGORY_DATA = [
   },
 ];
 
-const PRODUCTS = [
-  {
-    name: "Android Head Unit",
-    price: "899",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1765889506754_MK1.png&w=2048&q=75",
-  },
-  {
-    name: "Digital Instrument Cluster",
-    price: "1299",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1768000097327_2.png&w=2048&q=75",
-  },
-];
 
-const ACCESSORIES = [
-  {
-    name: "Reverse Camera",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1740993396573_360cam.jpg&w=2048&q=75",
-  },
-  {
-    name: "Steering Wheel Control",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741496263373_1.jpg&w=2048&q=75",
-  },
-  {
-    name: "Headrest",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741065794771_Z.jpg&w=2048&q=75",
-  },
-  {
-    name: "USB Hub",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741521115579_1-14.jpg&w=2048&q=75",
-  },
-];
+
 
 /* ---------------- STYLES ---------------- */
 
@@ -296,7 +161,7 @@ const styles = StyleSheet.create({
 
   banner: {
     width: "100%",
-    height: 220,
+    height: 140,
     resizeMode: "cover",
   },
 
