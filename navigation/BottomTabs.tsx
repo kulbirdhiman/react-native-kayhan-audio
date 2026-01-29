@@ -1,26 +1,28 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useSelector } from "react-redux";
+import { RootState } from "store/store";
 
 import HomeScreen from "screens/homeScreen";
 import ProductListScreen from "screens/ProductListScreen";
 import CartScreen from "screens/CartScreen";
 import ProfileUpdateScreen from "screens/user/ProfileUpdateScreen";
 import LoginScreen from "screens/auth/LoginScreen";
+
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
+  const { token } = useSelector((state: RootState) => state.auth);
+  console.log(token , "this is token")
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: "#000",
         tabBarInactiveTintColor: "#999",
-        tabBarStyle: {
-          height: 60,
-          paddingBottom: 70,
-        },
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarStyle: { height: 60, paddingBottom: 70 },
+        tabBarIcon: ({ focused, color }) => {
           let iconName: any;
 
           switch (route.name) {
@@ -49,7 +51,12 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Search" component={ProductListScreen} />
       <Tab.Screen name="Shop" component={ProductListScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
-      <Tab.Screen name="Account" component={LoginScreen} />
+      
+      {/* Dynamic Account tab */}
+      <Tab.Screen
+        name="Account"
+        component={token ? ProfileUpdateScreen : LoginScreen}
+      />
     </Tab.Navigator>
   );
 }
