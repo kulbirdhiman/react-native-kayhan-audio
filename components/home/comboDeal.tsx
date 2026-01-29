@@ -1,4 +1,5 @@
 import React from "react";
+import { useGetAllComboDealsQuery } from "../../store/api/home/comboDeals";
 import {
   View,
   Text,
@@ -8,45 +9,83 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-const COMBO_DEALS = [
-  {
-    title: "Head Unit + Reverse Camera",
-    price: "999",
-    oldPrice: "1199",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1765889506754_MK1.png&w=2048&q=75",
-  },
-  {
-    title: "Digital Cluster + Steering Wheel",
-    price: "1499",
-    oldPrice: "1799",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1768000097327_2.png&w=2048&q=75",
-  },
-];
+// 🔗 CloudFront base URL
+const IMG_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
 export default function ComboDeals() {
+  const { data, isLoading, isError } = useGetAllComboDealsQuery({});
+
+  if (isLoading) {
+    return <Text style={{ padding: 16 }}>Loading combo deals...</Text>;
+  }
+
+  if (isError || !data?.success) {
+    return <Text style={{ padding: 16 }}>Failed to load combo deals</Text>;
+  }
+
   return (
     <View style={styles.section}>
       <Text style={styles.title}>Combo Deals</Text>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {COMBO_DEALS.map((item, index) => (
-          <View key={index} style={styles.card}>
-            <Image source={{ uri: item.image }} style={styles.image} />
+        {data.data.map((item: any) => {
+          // ✅ Main image
+          const images = item.image ? JSON.parse(item.image) : [];
+          const mainImage =
+            images.length > 0
+              ? `${IMG_BASE_URL}${images[0].image}`
+              : undefined;
 
-            <Text style={styles.name}>{item.title}</Text>
+          // ✅ Sub product images
+          const subImages = item.subproduct_images
+            ? JSON.parse(item.subproduct_images)
+            : [];
 
-            <Text style={styles.price}>
-              ${item.price}{" "}
-              <Text style={styles.oldPrice}>${item.oldPrice}</Text>
-            </Text>
+          return (
+            <View key={item.id} style={styles.card}>
+              {/* Main Image */}
+              {mainImage && (
+                <Image source={{ uri: mainImage }} style={styles.image} />
+              )}
 
-            <TouchableOpacity style={styles.button}>
-              <Text style={styles.buttonText}>Grab Deal</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
+              {/* Product Name */}
+              <Text style={styles.name} numberOfLines={2}>
+                {item.name}
+              </Text>
+
+              {/* Sub product name */}
+              {item.subproduct_name && (
+                <Text style={styles.subProductName} numberOfLines={2}>
+                  Includes: {item.subproduct_name}
+                </Text>
+              )}
+
+              {/* Sub product images */}
+              {subImages.length > 0 && (
+                <View style={styles.subImagesRow}>
+                  {subImages.map((img: any, index: number) => (
+                    <Image
+                      key={index}
+                      source={{ uri: `${IMG_BASE_URL}${img.image}` }}
+                      style={styles.subImage}
+                    />
+                  ))}
+                </View>
+              )}
+
+              {/* Price */}
+              <Text style={styles.price}>
+                ${item.discount_price}{" "}
+                <Text style={styles.oldPrice}>${item.price}</Text>
+              </Text>
+
+              {/* CTA */}
+              <TouchableOpacity style={styles.button}>
+                <Text style={styles.buttonText}>Grab Deal</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -62,12 +101,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   card: {
-    width: 220,
+    width: 240,
     borderWidth: 1,
     borderColor: "#EEE",
     borderRadius: 10,
     padding: 12,
     marginRight: 12,
+    backgroundColor: "#FFF",
   },
   image: {
     width: "100%",
@@ -78,6 +118,25 @@ const styles = StyleSheet.create({
   name: {
     fontWeight: "700",
     marginBottom: 4,
+    fontSize: 14,
+  },
+  subProductName: {
+    fontSize: 12,
+    color: "#555",
+    marginBottom: 6,
+  },
+  subImagesRow: {
+    flexDirection: "row",
+    marginBottom: 6,
+  },
+  subImage: {
+    width: 40,
+    height: 40,
+    resizeMode: "contain",
+    marginRight: 6,
+    borderWidth: 1,
+    borderColor: "#EEE",
+    borderRadius: 4,
   },
   price: {
     fontWeight: "700",

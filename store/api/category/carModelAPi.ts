@@ -1,22 +1,23 @@
-// services/carModelApi.ts
+// store/api/admin/carModelApi.ts
 import { apiSlice } from "../apiSlice";
 
 export const carModelApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // Fetch car model detail (years)
-    getCarModelDetail: builder.query<
-      { id: number; slug: string; name: string }[], // Result type: array of years
-      { model_id: string } // Parameter: model_id
-    >({
-      query: ({ model_id }) => ({
-        url: `/v1/car_model/${model_id}`,
-        method: "GET",
-      }),
-      keepUnusedDataFor: 60, // Cache for 60 seconds
+    // Get car models with no parent (roots)
+  getRootCarModelsByCategory: builder.query({
+    query : (id)=>({
+      url : `/v1/car-model/roots/${id}`,
+      method : "GET"
+    })
+  }),
+
+    getChildrenByParentId: builder.query<any[], number | string>({
+      query: (parentId) => `/v1/car-model/children/${parentId}`,
     }),
   }),
-  overrideExisting: false,
 });
 
-// Export hooks for usage in components
-export const { useGetCarModelDetailQuery } = carModelApi;
+export const {
+  useGetRootCarModelsByCategoryQuery,
+  useGetChildrenByParentIdQuery,
+} = carModelApi;
