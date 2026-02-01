@@ -14,7 +14,7 @@ const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
   const { token } = useSelector((state: RootState) => state.auth);
-  // console.log(token , "this is token")
+  // console.log(token , "this is token") 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
