@@ -9,6 +9,7 @@ import OrdersScreen from "../screens/user/OrdersScreen";
 import BottomTabs from "./BottomTabs";
 import CartScreen from "../screens/CartScreen";
 import ProfileUpdateScreen from "screens/user/ProfileUpdateScreen";
+import OrderDetailsScreen from "screens/OrderDetailsScreen";
 /* ---------- TYPES ---------- */
 export type RootStackParamList = {
   Login: undefined;
@@ -21,6 +22,7 @@ export type RootStackParamList = {
 
   Checkout: { productId?: number };
   Orders: undefined;
+  OrderDetails: { orderId: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -39,6 +41,7 @@ export default function StackNavigator() {
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="Orders" component={OrdersScreen} />
+      <Stack.Screen name="OrderDetails" component={OrderDetailsScreen} />
     </Stack.Navigator>
   );
 }
