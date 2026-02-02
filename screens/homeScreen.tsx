@@ -15,6 +15,9 @@ import SupportSection from "components/home/SupportSection";
 import FeaturedProduct from "components/home/FeaturedProduct";
 import Accessories from "components/home/Accessories";
 import FindYourVehicle from "components/home/FindYourVhecle";
+import MKUpgradeBanner from "components/home/MKUpgradeBanner";
+import CategoriesSection from "components/home/CategoriesSection";
+import { useNavigation } from "@react-navigation/native";
 // import FindSteeringWheel from "components/home/StreeringWheel";
 
 /* ---------------- TYPES ---------------- */
@@ -33,6 +36,7 @@ export default function HomeScreen() {
     setSubModel(null);
     setYear(null);
   };
+  const navigation = useNavigation<any>();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -40,7 +44,10 @@ export default function HomeScreen() {
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.logo}>Kayhan Audio</Text>
-          <Ionicons name="search" size={22} />
+          {/* <Ionicons  name="search" size={22} /> */}
+          <TouchableOpacity onPress={() => navigation.navigate("Search")}>
+            <Ionicons name="search" size={22} />
+          </TouchableOpacity>
         </View>
 
         {/* HERO BANNER */}
@@ -50,9 +57,9 @@ export default function HomeScreen() {
         />
 
         {/* VEHICLE SELECTION */}
-       {/* <FindYourVehicle /> */}
+        {/* <FindYourVehicle /> */}
         {/* CATEGORIES */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Categories</Text>
           <View style={styles.grid}>
             {CATEGORY_DATA.map((item, index) => (
@@ -62,12 +69,13 @@ export default function HomeScreen() {
               </View>
             ))}
           </View>
-        </View>
-
+        </View> */}
+        <CategoriesSection />
         {/* FEATURED PRODUCTS */}
         <FeaturedProduct />
         <ComboDeals />
         <HotDeals />
+        <MKUpgradeBanner />
         {/* ACCESSORIES */}
         <Accessories />
         <SupportSection />
@@ -86,63 +94,6 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
-
-/* ---------------- DATA ---------------- */
-
-const VEHICLE_DATA: any = {
-  Ford: {
-    Falcon: {
-      XR6: ["2016", "2017", "2018"],
-      XR8: ["2017", "2018"],
-    },
-    Territory: {
-      TX: ["2015", "2016"],
-      TS: ["2016", "2017"],
-    },
-  },
-  Toyota: {
-    Corolla: {
-      Sport: ["2018", "2019"],
-      Hybrid: ["2019", "2020"],
-    },
-    Hilux: {
-      SR: ["2017", "2018"],
-      SR5: ["2019", "2020"],
-    },
-  },
-  BMW: {
-    X5: {
-      Base: ["2019", "2020"],
-    },
-    X3: {
-      M: ["2020", "2021"],
-    },
-  },
-};
-
-const CATEGORY_DATA = [
-  {
-    title: "Head Units",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1765889506754_MK1.png&w=2048&q=75",
-  },
-  {
-    title: "Digital Cluster",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1768000097327_2.png&w=2048&q=75",
-  },
-  {
-    title: "CarPlay",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741691715893_1-197.jpg&w=2048&q=75",
-  },
-  {
-    title: "Steering Wheel",
-    image:
-      "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741496263373_1.jpg&w=2048&q=75",
-  },
-];
-
 
 
 

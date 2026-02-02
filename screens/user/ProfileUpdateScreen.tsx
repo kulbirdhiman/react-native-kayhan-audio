@@ -14,7 +14,17 @@ import axios from "axios";
 import { RootState } from "store/store";
 import { logout } from "store/api/auth/authSlice";
 
+/* ---------------- CONSTANTS ---------------- */
+
 const API_URL = "https://api.kayhanaudio.com.au/v1";
+
+export const PAYMENT_STATUS = {
+  pending: 0,
+  paid: 1,
+  failed: 2,
+};
+
+/* ---------------- SCREEN ---------------- */
 
 export default function ProfileScreen({ navigation }: any) {
   const dispatch = useDispatch();
@@ -30,14 +40,16 @@ export default function ProfileScreen({ navigation }: any) {
     }
   }, [token]);
 
+  /* ---------------- API CALLS ---------------- */
+
   const fetchProfile = async () => {
     try {
       const res = await axios.get(`${API_URL}/auth/my_profile`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setUser(res.data.data.user);
+      setUser(res.data?.data?.user || null);
     } catch (err) {
-      console.log(err);
+      console.log("Profile fetch error", err);
     }
   };
 
@@ -49,17 +61,18 @@ export default function ProfileScreen({ navigation }: any) {
 
       const allOrders = res.data?.data?.result || [];
 
-      // 🔥 sort latest first + take last 5
-      const lastFive = allOrders
+      // latest 5 orders
+      const lastFiveOrders = allOrders
         .sort((a: any, b: any) => b.id - a.id)
         .slice(0, 5);
 
-      setOrders(lastFive);
+      setOrders(lastFiveOrders);
     } catch (err) {
       console.log("Order fetch error", err);
     }
   };
 
+  /* ---------------- LOGOUT ---------------- */
 
   const handleLogout = async () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
@@ -84,6 +97,8 @@ export default function ProfileScreen({ navigation }: any) {
     ]);
   };
 
+  /* ---------------- UI ---------------- */
+
   return (
     <SafeAreaView style={styles.container}>
       {/* HEADER */}
@@ -93,14 +108,13 @@ export default function ProfileScreen({ navigation }: any) {
 
       {/* PROFILE CARD */}
       <View style={styles.profileCard}>
-        {/* USER ICON */}
         <View style={styles.avatar}>
           <Ionicons name="person" size={40} color="#fff" />
         </View>
 
-        <Text style={styles.name}>{user?.name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-        <Text style={styles.phone}>{user?.phone}</Text>
+        <Text style={styles.name}>{user?.name || "-"}</Text>
+        <Text style={styles.email}>{user?.email || "-"}</Text>
+        <Text style={styles.phone}>{user?.phone || "-"}</Text>
 
         <TouchableOpacity
           style={styles.editBtn}
@@ -128,7 +142,7 @@ export default function ProfileScreen({ navigation }: any) {
               <View key={order.id} style={styles.orderItem}>
                 <View>
                   <Text style={styles.orderNumber}>
-                    Order #{order.order_number}
+                    Order #{order.id}
                   </Text>
                   <Text style={styles.orderDate}>
                     {new Date(order.created_at).toDateString()}
@@ -138,11 +152,11 @@ export default function ProfileScreen({ navigation }: any) {
                 <View
                   style={[
                     styles.statusBadge,
-                    getStatusStyle(order.status),
+                    getStatusStyle(order.payment_status),
                   ]}
                 >
                   <Text style={styles.statusText}>
-                    {getStatusLabel(order.status)}
+                    {getStatusLabel(order.payment_status)}
                   </Text>
                 </View>
               </View>
@@ -169,7 +183,7 @@ export default function ProfileScreen({ navigation }: any) {
   );
 }
 
-/* ---------- COMPONENTS ---------- */
+/* ---------------- COMPONENTS ---------------- */
 
 const MenuItem = ({ icon, label, onPress }: any) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
@@ -179,35 +193,35 @@ const MenuItem = ({ icon, label, onPress }: any) => (
   </TouchableOpacity>
 );
 
-/* ---------- HELPERS ---------- */
+/* ---------------- HELPERS ---------------- */
 
-const getStatusLabel = (status: any) => {
+const getStatusLabel = (status: number) => {
   switch (status) {
-    case 1:
+    case PAYMENT_STATUS.paid:
       return "Paid";
-    case 0:
+    case PAYMENT_STATUS.pending:
       return "Pending";
-    case 2:
+    case PAYMENT_STATUS.failed:
       return "Failed";
     default:
       return "Unknown";
   }
 };
 
-const getStatusStyle = (status: any) => {
+const getStatusStyle = (status: number) => {
   switch (status) {
-    case 1:
+    case PAYMENT_STATUS.paid:
       return { backgroundColor: "#4caf50" };
-    case 0:
+    case PAYMENT_STATUS.pending:
       return { backgroundColor: "#ff9800" };
-    case 2:
+    case PAYMENT_STATUS.failed:
       return { backgroundColor: "#f44336" };
     default:
       return { backgroundColor: "#9e9e9e" };
   }
 };
 
-/* ---------- STYLES ---------- */
+/* ---------------- STYLES ---------------- */
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f6f6f6" },
