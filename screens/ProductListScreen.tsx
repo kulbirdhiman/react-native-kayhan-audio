@@ -15,7 +15,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useListProductForShopQuery } from "store/api/product/productApi";
 import { useGetDepartmentsQuery } from "store/api/category/departmentApi";
 import ProductFilterSidebar from "components/products/ProductFilterSidebar";
-
+import { useRoute } from "@react-navigation/native";
 const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
 export default function ProductListScreen() {
@@ -61,7 +61,13 @@ export default function ProductListScreen() {
   });
 
   const products = data?.data?.result || [];
+   const route = useRoute<any>();
+  const { category } = route.params || {};
+    //  console.log("Selected category:", category);
+    useEffect(()=>{
+    setSelectedCategory(category)
 
+    },[category])
   // ---------------- FAVORITES ----------------
   const toggleFavorite = (id: number) => {
     setFavorites((prev) =>
