@@ -3,41 +3,56 @@ export const CATEGORY_DATA = [
     title: "Head Units",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1765889506754_MK1.png&w=2048&q=75",
+      slug : "satnav-stereo"
   },
   {
     title: "Digital Cluster",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1768000097327_2.png&w=2048&q=75",
+      slug : "satnav-stereo"
+
   },
   {
     title: "CarPlay",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741691715893_1-197.jpg&w=2048&q=75",
+      slug : "carplay-module"
+
   },
   {
     title: "Steering Wheel",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741496263373_1.jpg&w=2048&q=75",
+      slug : "steering-wheel"
+
   },
    {
     title: "Audio Equipments",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1765889506754_MK1.png&w=2048&q=75",
+      slug : "audio-equipments"
+
   },
   {
     title: "Frame's & Fascia's",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1768000097327_2.png&w=2048&q=75",
+      slug : "frames-fascias"
+
   },
   {
     title: "Accessories",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741691715893_1-197.jpg&w=2048&q=75",
+      slug : "accessories"
+
   },
   {
     title: "Universal 2 Din",
     image:
       "https://kayhanaudio.com.au/_next/image?url=https%3A%2F%2Fd198m4c88a0fux.cloudfront.net%2Fuploads%2F1741496263373_1.jpg&w=2048&q=75",
+      slug : "satnav-stereo"
+
   },
 ];
 

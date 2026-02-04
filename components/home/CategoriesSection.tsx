@@ -5,7 +5,9 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  TouchableOpacity,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { CATEGORY_DATA } from "../../data/homedata";
 
 const { width } = Dimensions.get("window");
@@ -20,7 +22,14 @@ const chunkArray = (arr: any[], size: number) => {
 };
 
 export default function CategoriesSection() {
+  const navigation = useNavigation<any>();
   const chunks = chunkArray(CATEGORY_DATA, 4);
+
+  const handleCategoryPress = (category: string) => {
+    navigation.navigate("Search", {
+      category, // 👈 send category here
+    });
+  };
 
   return (
     <View style={styles.section}>
@@ -34,10 +43,15 @@ export default function CategoriesSection() {
         {chunks.map((group, index) => (
           <View key={index} style={styles.page}>
             {group.map((item, i) => (
-              <View key={i} style={styles.card}>
+              <TouchableOpacity
+                key={i}
+                style={styles.card}
+                onPress={() => handleCategoryPress(item.slug || item.title)}
+                activeOpacity={0.8}
+              >
                 <Image source={{ uri: item.image }} style={styles.image} />
                 <Text style={styles.text}>{item.title}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         ))}
@@ -45,6 +59,7 @@ export default function CategoriesSection() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   section: {
     padding: 16,
