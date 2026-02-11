@@ -26,9 +26,9 @@ export default function SearchMenu({ visible, onClose }: Props) {
   const navigation = useNavigation<any>();
   const slide = useState(new Animated.Value(-SCREEN_WIDTH))[0];
 
-  const [step, setStep] = useState<
-    "category" | "make" | "model" | "year"
-  >("category");
+  const [step, setStep] = useState<"category" | "make" | "model" | "year">(
+    "category"
+  );
 
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
@@ -51,7 +51,7 @@ export default function SearchMenu({ visible, onClose }: Props) {
       .get("https://api.kayhanaudio.com.au/v1/category/list", {
         params: { type: 1 },
       })
-      .then((res) => setCategories(res.data.data.result));
+      .then((res) => setCategories(res.data.data.result || []));
   }, []);
 
   const { data: makes } = useGetRootCarModelsByCategoryQuery(
@@ -64,16 +64,23 @@ export default function SearchMenu({ visible, onClose }: Props) {
     { skip: !selectedMake }
   );
 
+  /* 👉 AUTO NAVIGATE if NO MODELS */
+  useEffect(() => {
+    if (step === "model" && selectedMake && models && models.length === 0) {
+      goToSearch(null);
+    }
+  }, [models, step, selectedMake]);
+
   /* Fetch years */
   const fetchYears = async (modelId: number) => {
     const res = await axios.get(
       `https://api.kayhanaudio.com.au/v1/car_model/detail/${modelId}`
     );
 
-    const result = res.data.data.result || [];
+    const result = res?.data?.data?.result ?? [];
 
     if (result.length === 0) {
-      goToSearch(null);
+      goToSearch(null); // 👉 no years
     } else {
       setYears(result);
       setStep("year");
@@ -92,14 +99,23 @@ export default function SearchMenu({ visible, onClose }: Props) {
     }
   };
 
+  /* ✅ CORRECT TAB NAVIGATION */
   const goToSearch = (year: string | null) => {
     onClose();
-    navigation.navigate("Search", {
+
+   navigation.navigate("MainTabs", {
+  screen: "SearchTab",
+  params: {
+    screen: "Search",
+    params: {
       category: selectedCategory?.slug || null,
       make: selectedMake?.slug || null,
       model: selectedModel?.slug || null,
       year,
-    });
+    },
+  },
+});
+
   };
 
   return (
