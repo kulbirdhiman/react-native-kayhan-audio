@@ -17,7 +17,8 @@ import Accessories from "components/home/Accessories";
 import FindYourVehicle from "components/home/FindYourVhecle";
 import MKUpgradeBanner from "components/home/MKUpgradeBanner";
 import CategoriesSection from "components/home/CategoriesSection";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native"; 
+import DigitalClusterSection from "components/home/DigitalClusterSection";
 // import FindSteeringWheel from "components/home/StreeringWheel";
 
 /* ---------------- TYPES ---------------- */
@@ -75,8 +76,9 @@ export default function HomeScreen() {
         <FeaturedProduct />
         <ComboDeals />
         <HotDeals />
+        <DigitalClusterSection />
         <MKUpgradeBanner />
-        {/* ACCESSORIES */}
+        {/* ACCESSORIES */} 
         <Accessories />
         <SupportSection />
         {/* <FindSteeringWheel /> */}
