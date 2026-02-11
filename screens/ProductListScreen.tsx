@@ -18,7 +18,7 @@ import ProductFilterSidebar from "components/products/ProductFilterSidebar";
 import { useRoute } from "@react-navigation/native";
 const IMAGE_BASE_URL = "https://d198m4c88a0fux.cloudfront.net/";
 
-export default function ProductListScreen() {
+export default function ProductListScreen() {                        
   const navigation = useNavigation<any>();
 
   const [search, setSearch] = useState("");
@@ -43,12 +43,30 @@ export default function ProductListScreen() {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
   }, [search]);
+  // const route = useRoute<any>();
+  const route = useRoute<any>();
+
+  useEffect(() => {
+    if (route.params) {
+      const { company, make, model, year, category } = route.params;
+
+      console.log("ROUTE PARAMS:", route.params);
+
+      if (category) setSelectedCategory(category);
+
+      setFilters({
+        company: company || null,
+        model: model || make,
+        year: year || null,
+      });
+    }
+  }, [route.params]);
 
   // ---------------- FETCH CATEGORIES ----------------
   const { data: deptData, isLoading: isDeptLoading } =
     useGetDepartmentsQuery();
   const categories = deptData?.data?.result || [];
-  console.log(selectedCategory ,filters, "this is")
+  console.log(selectedCategory, filters, "this is")
   // ---------------- FETCH PRODUCTS ----------------
   const { data, isLoading, isError } = useListProductForShopQuery({
     page: 1,
@@ -61,13 +79,12 @@ export default function ProductListScreen() {
   });
 
   const products = data?.data?.result || [];
-   const route = useRoute<any>();
   const { category } = route.params || {};
-    //  console.log("Selected category:", category);
-    useEffect(()=>{
+  //  console.log("Selected category:", category);
+  useEffect(() => {
     setSelectedCategory(category)
 
-    },[category])
+  }, [category])
   // ---------------- FAVORITES ----------------
   const toggleFavorite = (id: number) => {
     setFavorites((prev) =>
@@ -134,58 +151,23 @@ export default function ProductListScreen() {
   return (
     <SafeAreaView style={styles.container}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Products</Text>
+     <View style={styles.headerRow}>
+  {/* 🔙 BACK BUTTON */}
+  <TouchableOpacity
+    onPress={() => navigation.goBack()}
+    style={styles.backButton}
+  >
+    <Ionicons name="arrow-back" size={22} color="#000" />
+  </TouchableOpacity>
 
-          {/* 🔥 FILTER BUTTON */}
-          <TouchableOpacity onPress={() => setFiltersOpen(()=>!filtersOpen)}>
-            <Ionicons name="filter" size={22} />
-          </TouchableOpacity>
-        </View>
+  <Text style={styles.headerTitle}>Products</Text>
 
-        {/* SEARCH */}
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color="#666" />
-          <TextInput
-            placeholder="Search products"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.searchInput}
-          />
-        </View>
+  {/* FILTER BUTTON */}
+  <TouchableOpacity onPress={() => setFiltersOpen((prev) => !prev)}>
+    <Ionicons name="filter" size={22} />
+  </TouchableOpacity>
+</View>
 
-        {/* CATEGORIES */}
-        <FlatList
-          data={categories}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.slug.toString()}
-          contentContainerStyle={{ marginTop: 10 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.categoryButton,
-                selectedCategory === item.slug && styles.categorySelected,
-              ]}
-              onPress={() =>
-                setSelectedCategory(
-                  selectedCategory === item.slug ? null : item.slug
-                )
-              }
-            >
-              <Text
-                style={{
-                  color: selectedCategory === item.slug ? "#FFF" : "#333",
-                  fontWeight: "500",
-                }}
-              >
-                {item.name}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
 
       {/* PRODUCT LIST */}
       <FlatList
@@ -237,6 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 8,
   },
+  
   categorySelected: { backgroundColor: "#007bff" },
   card: { width: "48%", marginBottom: 16 },
   heart: {
@@ -260,4 +243,8 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through",
     marginRight: 6,
   },
+  backButton: {
+  padding: 6,
+},
+
 });

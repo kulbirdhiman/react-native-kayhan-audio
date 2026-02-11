@@ -100,23 +100,28 @@ export default function SearchMenu({ visible, onClose }: Props) {
   };
 
   /* ✅ CORRECT TAB NAVIGATION */
+
   const goToSearch = (year: string | null) => {
     onClose();
-
-   navigation.navigate("MainTabs", {
-  screen: "SearchTab",
-  params: {
-    screen: "Search",
-    params: {
-      category: selectedCategory?.slug || null,
+    console.log({
+      company: selectedCategory?.slug,
       make: selectedMake?.slug || null,
       model: selectedModel?.slug || null,
       year,
-    },
-  },
-});
+    },)
+    setStep("category");
 
+    navigation.navigate("MainTabs", {
+      screen: "Search",
+      params: {
+        company: selectedCategory?.slug,
+        make: selectedMake?.slug,
+        model: selectedModel?.slug,
+        year,
+      },
+    });
   };
+
 
   return (
     <Animated.View style={[styles.sidebar, { left: slide }]}>
