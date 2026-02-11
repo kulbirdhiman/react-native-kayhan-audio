@@ -40,7 +40,7 @@ export default function StackNavigator() {
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="MainTabs" component={BottomTabs} />
       <Stack.Screen name="Cart" component={CartScreen} />
-      <Stack.Screen name="Search" component={ProductListScreen} />
+      {/* <Stack.Screen name="Search" component={ProductListScreen} /> */}
 
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="Checkout" component={CheckoutScreen} />

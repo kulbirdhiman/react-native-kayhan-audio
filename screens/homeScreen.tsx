@@ -19,6 +19,7 @@ import MKUpgradeBanner from "components/home/MKUpgradeBanner";
 import CategoriesSection from "components/home/CategoriesSection";
 import { useNavigation } from "@react-navigation/native"; 
 import DigitalClusterSection from "components/home/DigitalClusterSection";
+import BatterySelector from "components/home/BattrarySection";
 // import FindSteeringWheel from "components/home/StreeringWheel";
 
 /* ---------------- TYPES ---------------- */
@@ -80,6 +81,7 @@ export default function HomeScreen() {
         <MKUpgradeBanner />
         {/* ACCESSORIES */} 
         <Accessories />
+        <BatterySelector />
         <SupportSection />
         {/* <FindSteeringWheel /> */}
         {/* NEWSLETTER */}
