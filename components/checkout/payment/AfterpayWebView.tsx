@@ -72,7 +72,7 @@ export default function AfterpayWebView({
       console.log("📦 Payload:", payload);
 
       const { data } = await axios.post(
-        "http://192.168.1.39:5002/v1/after_pay/create-order",
+        "https://api.kayhanaudio.com.au/v1/after_pay/create-order",
         payload
       );
 
