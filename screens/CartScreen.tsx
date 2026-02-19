@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   View,
   Text,
@@ -21,14 +21,15 @@ export default function CartScreen({ navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
 
   // ✅ Get cart items from Redux
-  const cartItems = useSelector(
-    (state: RootState) => state.cart.items
-  );
+  const cartItems = useSelector((state: RootState) => state.cart.items);
 
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.price * item.qty,
-    0
-  );
+  const totalPrice = useMemo(() => {
+    return (cartItems || []).reduce((sum: number, item: any) => {
+      const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
+      const price = Number(item.price) || 0;
+      return sum + price * qty;
+    }, 0);
+  }, [cartItems]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -59,57 +60,76 @@ export default function CartScreen({ navigation }: any) {
       ) : (
         /* ================= CART ITEMS ================= */
         <ScrollView contentContainerStyle={{ paddingBottom: 180 }}>
-          {cartItems.map((item) => (
-            <View key={item.id} style={styles.card}>
-              {/* Image */}
-              <Image source={{ uri: item.image }} style={styles.image} />
+          {cartItems.map((item: any, idx: number) => {
+            const productId = item.product_id ?? item.id; // fallback
+            const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
 
-              {/* Details */}
-              <View style={styles.details}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.inStock}>In stock</Text>
+            // ✅ image priority: item.image -> images[0] -> images[0].image
+            const img =
+              item.image ??
+              item.images?.[0]?.image ??
+              item.images?.[0]?.url ??
+              item.images?.[0] ??
+              null;
 
-                <Text style={styles.price}>
-                  ₹{item.price * item.qty}
-                </Text>
+            return (
+              <View key={productId ?? item.cart_id ?? idx} style={styles.card}>
+                {/* Image */}
+                <Image
+                  source={{ uri: img || "https://via.placeholder.com/90" }}
+                  style={styles.image}
+                />
 
-                {/* Quantity */}
-                <View style={styles.qtyRow}>
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => dispatch(decreaseQty(item.id))}
-                    disabled={item.qty === 1}
-                  >
-                    <Text>-</Text>
-                  </TouchableOpacity>
+                {/* Details */}
+                <View style={styles.details}>
+                  <Text style={styles.name}>{item.name}</Text>
 
-                  <Text style={styles.qtyValue}>{item.qty}</Text>
+                  {item.is_free == 1 ? (
+                    <Text style={[styles.inStock, { color: "#16a34a" }]}>
+                      Free item 🎁
+                    </Text>
+                  ) : (
+                    <Text style={styles.inStock}>In stock</Text>
+                  )}
 
-                  <TouchableOpacity
-                    style={styles.qtyBtn}
-                    onPress={() => dispatch(increaseQty(item.id))}
-                  >
-                    <Text>+</Text>
-                  </TouchableOpacity>
-                </View>
+                  <Text style={styles.price}>₹{(Number(item.price) || 0) * qty}</Text>
 
-                {/* Actions */}
-                <View style={styles.actionRow}>
-                  <TouchableOpacity
-                    onPress={() => dispatch(removeItem(item.id))}
-                  >
-                    <Text style={styles.actionText}>Delete</Text>
-                  </TouchableOpacity>
+                  {/* Quantity */}
+                  <View style={styles.qtyRow}>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => dispatch(decreaseQty(productId))}
+                      disabled={qty === 1}
+                    >
+                      <Text>-</Text>
+                    </TouchableOpacity>
 
-                  <Text style={styles.divider}>|</Text>
+                    <Text style={styles.qtyValue}>{qty}</Text>
 
-                  <TouchableOpacity>
-                    <Text style={styles.actionText}>Save for later</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.qtyBtn}
+                      onPress={() => dispatch(increaseQty(productId))}
+                    >
+                      <Text>+</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Actions */}
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity onPress={() => dispatch(removeItem(productId))}>
+                      <Text style={styles.actionText}>Delete</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.divider}>|</Text>
+
+                    <TouchableOpacity>
+                      <Text style={styles.actionText}>Save for later</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       )}
 
@@ -134,10 +154,7 @@ export default function CartScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#EAEDED",
-  },
+  container: { flex: 1, backgroundColor: "#EAEDED" },
 
   header: {
     flexDirection: "row",
@@ -147,11 +164,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginLeft: 16,
-  },
+  headerTitle: { fontSize: 18, fontWeight: "700", marginLeft: 16 },
 
   card: {
     flexDirection: "row",
@@ -161,40 +174,17 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
 
-  image: {
-    width: 90,
-    height: 90,
-    resizeMode: "contain",
-  },
+  image: { width: 90, height: 90, resizeMode: "contain" },
 
-  details: {
-    flex: 1,
-    marginLeft: 12,
-  },
+  details: { flex: 1, marginLeft: 12 },
 
-  name: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111",
-  },
+  name: { fontSize: 15, fontWeight: "600", color: "#111" },
 
-  inStock: {
-    color: "#007600",
-    marginTop: 4,
-    fontSize: 13,
-  },
+  inStock: { color: "#007600", marginTop: 4, fontSize: 13 },
 
-  price: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 6,
-  },
+  price: { fontSize: 18, fontWeight: "700", marginTop: 6 },
 
-  qtyRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
+  qtyRow: { flexDirection: "row", alignItems: "center", marginTop: 8 },
 
   qtyBtn: {
     borderWidth: 1,
@@ -204,26 +194,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  qtyValue: {
-    marginHorizontal: 12,
-    fontWeight: "600",
-  },
+  qtyValue: { marginHorizontal: 12, fontWeight: "600" },
 
-  actionRow: {
-    flexDirection: "row",
-    marginTop: 10,
-    alignItems: "center",
-  },
+  actionRow: { flexDirection: "row", marginTop: 10, alignItems: "center" },
 
-  actionText: {
-    color: "#007185",
-    fontSize: 13,
-  },
+  actionText: { color: "#007185", fontSize: 13 },
 
-  divider: {
-    marginHorizontal: 8,
-    color: "#999",
-  },
+  divider: { marginHorizontal: 8, color: "#999" },
 
   checkoutBar: {
     position: "absolute",
@@ -235,14 +212,9 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
-  subtotal: {
-    fontSize: 16,
-    marginBottom: 10,
-  },
+  subtotal: { fontSize: 16, marginBottom: 10 },
 
-  subtotalPrice: {
-    fontWeight: "800",
-  },
+  subtotalPrice: { fontWeight: "800" },
 
   checkoutBtn: {
     backgroundColor: "#FFD814",
@@ -252,12 +224,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
-  checkoutText: {
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  checkoutText: { fontSize: 16, fontWeight: "700" },
 
-  /* Empty cart styles */
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -267,11 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginTop: 16,
-  },
+  emptyTitle: { fontSize: 20, fontWeight: "700", marginTop: 16 },
 
   emptySubtitle: {
     fontSize: 14,
@@ -288,8 +252,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 
-  shopText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
+  shopText: { fontSize: 15, fontWeight: "700" },
 });

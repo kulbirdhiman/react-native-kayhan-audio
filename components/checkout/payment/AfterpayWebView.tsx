@@ -7,8 +7,8 @@ interface Props {
   billingAddress: any;
   productData: any[];
   selectedShipping: number;
-  discount: any;
-  user: any;
+  discount: any; // can be null | {} | { coupon_code: string, ... }
+  user: any;     // can be null | {}
   deviceDetails: any;
   onSuccess: () => void;
 }
@@ -34,19 +34,11 @@ export default function AfterpayWebView({
 
         return {
           ...item,
-          // ✅ backend required
           quantity,
           variations: Array.isArray(item?.variations) ? item.variations : [],
-
-          // ✅ backend pricing fields
           regular_price: item?.regular_price ?? item?.price ?? 0,
           discount_price:
-            item?.discount_price !== undefined ? item.discount_price : null,
-
-          // ✅ optional fields
-          is_free: item?.is_free ?? 0,
-
-          // optional mapping
+            item?.discount_price !== undefined ? item.discount_price : 0,
           id: item?.id ?? item?.product_id,
           image:
             item?.image ??
@@ -57,36 +49,53 @@ export default function AfterpayWebView({
         };
       });
 
-      // ✅ IMPORTANT: backend expects device_detail
+      // ✅ make sure user is either real object or null (not {})
+      const safeUser =
+        user && Object.keys(user).length > 0 ? user : null;
+
+      // ✅ make sure discount is either valid coupon object or null
+      // If you only care about coupon_code, enforce it:
+      const safeDiscount =
+        discount &&
+        typeof discount === "object" &&
+        Object.keys(discount).length > 0 &&
+        (discount.coupon_code ? true : false)
+          ? discount
+          : {};
+
       const payload = {
         selectedShipping,
-        user,
+        user: safeUser,
         shippingAddress,
         billingAddress,
         productData: normalizedProducts,
-        discount,
-        payment_method: "afterpay",
-        deviceDetails: deviceDetails ?? { ip: "0.0.0.0", type: Platform.OS },
+
+        // ✅ IMPORTANT: send null if no coupon (prevents backend crash)
+        discount: safeDiscount,
+
+        // ✅ backend expects payment_method
+        payment_method:  2,
+
+        deviceDetails:
+          deviceDetails && Object.keys(deviceDetails).length > 0
+            ? deviceDetails
+            : { ip: "0.0.0.0", type: Platform.OS },
       };
 
       console.log("📦 Payload:", payload);
 
       const { data } = await axios.post(
-        "https://api.kayhanaudio.com.au/v1/after_pay/create-order",
+        "http://192.168.1.39:5002/v1/after_pay/create-order",
         payload
       );
-
-      console.log("✅ Response:", data);
 
       if (!data?.redirectUrl) {
         Alert.alert("Error", "No redirect URL returned from server");
         return;
       }
 
-      // ✅ Open Afterpay in browser (works better than WebView)
       const url = data.redirectUrl;
       const canOpen = await Linking.canOpenURL(url);
-
       if (!canOpen) {
         Alert.alert("Error", "Cannot open Afterpay checkout URL");
         return;
@@ -104,28 +113,18 @@ export default function AfterpayWebView({
     }
   };
 
-  // ✅ Listen for deep-link return from Afterpay (needs backend returnUrl = yourapp://payment-success)
   useEffect(() => {
     const sub = Linking.addEventListener("url", ({ url }) => {
       console.log("🔁 Deep link:", url);
 
-      if (url.includes("payment-success")) {
-        onSuccess();
-      }
-
-      if (url.includes("payment-cancel")) {
-        Alert.alert("Payment Cancelled");
-      }
+      if (url.includes("payment-success")) onSuccess();
+      if (url.includes("payment-cancel")) Alert.alert("Payment Cancelled");
     });
 
     createOrder();
-
     return () => sub.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) return <ActivityIndicator size="large" />;
-
-  // no WebView now
   return null;
 }
