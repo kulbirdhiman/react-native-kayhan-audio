@@ -1,31 +1,22 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Platform } from "react-native";
 import axios from "axios";
 
-type Props = {
+interface Props {
   shippingAddress: any;
   billingAddress: any;
   productData: any[];
   selectedShipping: number;
-  discount: any;
-  user: any;
+  discount: any; // can be null | {} | { coupon_code: string, ... }
+  user: any; // can be null | {}
   deviceDetails: any;
   onSuccess: (orderId: number) => void;
   onCancel?: () => void;
-};
+}
 
-const API_BASE = "https://api.kayhanaudio.com.au";
+const API_BASE = "http://192.168.1.39:5002";
 
-export default function PayPalButton({
+export default function PayPalWebView({
   shippingAddress,
   billingAddress,
   productData,
@@ -36,21 +27,23 @@ export default function PayPalButton({
   onSuccess,
   onCancel,
 }: Props) {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [paypalOrderID, setPaypalOrderID] = useState<string | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
 
-  const normalizedProducts = useMemo(() => {
-    return (productData || []).map((item) => {
+  const createPayPalOrder = async () => {
+    // ✅ normalize products (same style as Afterpay)
+    const normalizedProducts = (productData || []).map((item) => {
       const quantity = item?.quantity ?? item?.qty ?? 1;
+
       return {
         ...item,
         quantity,
         variations: Array.isArray(item?.variations) ? item.variations : [],
         regular_price: item?.regular_price ?? item?.price ?? 0,
         discount_price:
-          item?.discount_price !== undefined ? item.discount_price : null,
+          item?.discount_price !== undefined ? item.discount_price : 0,
         is_free: item?.is_free ?? 0,
         id: item?.id ?? item?.product_id,
         image:
@@ -61,31 +54,50 @@ export default function PayPalButton({
           null,
       };
     });
-  }, [productData]);
 
-  const createPayPalOrder = async () => {
+    // ✅ safe user: real object or null (not {})
+    const safeUser = user && Object.keys(user).length > 0 ? user : null;
+
+    // ✅ safe discount: if you require coupon_code, enforce it
+    const safeDiscount =
+      discount &&
+      typeof discount === "object" &&
+      Object.keys(discount).length > 0 &&
+      (discount.coupon_code ? true : false)
+        ? discount
+        : {};
+
     const payload = {
       selectedShipping,
-      user,
+      user: safeUser,
       shippingAddress,
       billingAddress,
       productData: normalizedProducts,
-      discount,
-      paymentMethod: 1, // ✅ PayPal int (your log shows payment_method: 1)
-      deviceDetails: deviceDetails ?? { ip: "0.0.0.0", type: Platform.OS },
+
+      // ✅ IMPORTANT: keep same behavior as Afterpay
+      discount: safeDiscount,
+
+      // ✅ match your backend key naming
+      payment_method: 4, // PayPal
+      deviceDetails:
+        deviceDetails && Object.keys(deviceDetails).length > 0
+          ? deviceDetails
+          : { ip: "0.0.0.0", type: Platform.OS },
     };
+
+    console.log("📦 PayPal Payload:", payload);
 
     const { data } = await axios.post(
       `${API_BASE}/v1/paypal/create-order`,
       payload,
       { headers: { "Content-Type": "application/json" } }
     );
-    console.log(data , "this is data")
-    // backend should send approvalUrl
+
     if (!data?.approvalUrl) {
       throw new Error("No approvalUrl returned from server");
     }
 
+    // store for capture step
     setPaypalOrderID(data.orderID);
     setOrderData(data.order);
 
@@ -98,9 +110,9 @@ export default function PayPalButton({
       { orderID, order },
       { headers: { "Content-Type": "application/json" } }
     );
-    return data; // expect { status: "COMPLETED" ... }
+    return data;
   };
-  
+
   const failedPayPalOrder = async (order: any) => {
     try {
       await axios.post(
@@ -109,36 +121,42 @@ export default function PayPalButton({
         { headers: { "Content-Type": "application/json" } }
       );
     } catch (e) {
-      // don't block UI
       console.log("failed-order log error", e);
     }
   };
 
-  const handlePayPal = async () => {
-    if (isProcessing) return;
-
+  const startPayPal = async () => {
     try {
-      setIsProcessing(true);
+      setLoading(true);
 
       const approvalUrl = await createPayPalOrder();
+
+      const canOpen = await Linking.canOpenURL(approvalUrl);
+      if (!canOpen) {
+        Alert.alert("Error", "Cannot open PayPal approval URL");
+        return;
+      }
+
       await Linking.openURL(approvalUrl);
-    } catch (err: any) {
-      console.log("❌ PayPal create error:", err?.message || err);
-      Alert.alert("Error", err?.message || "Failed to create PayPal order");
-      setIsProcessing(false);
+    } catch (error: any) {
+      console.log("❌ PayPal ERROR:", error?.response?.data || error?.message);
+      Alert.alert(
+        "Error",
+        error?.response?.data?.message || "Failed to create PayPal order"
+      );
+      setLoading(false);
     }
   };
 
-  // ✅ listen deep link and capture
   useEffect(() => {
     const sub = Linking.addEventListener("url", async ({ url }) => {
-      console.log("🔁 PayPal deep link:", url);
+      console.log("🔁 PayPal Deep link:", url);
 
-      // success
+      // ✅ success
       if (url.includes("paypal-success")) {
         if (!paypalOrderID || !orderData) {
           Alert.alert("Error", "Missing PayPal order data");
-          setIsProcessing(false);
+          setLoading(false);
           return;
         }
 
@@ -146,65 +164,37 @@ export default function PayPalButton({
           const captureRes = await capturePayPalOrder(paypalOrderID, orderData);
 
           if (captureRes?.status === "COMPLETED") {
-            setIsProcessing(false);
+            setLoading(false);
             onSuccess(orderData.id);
           } else {
             console.log("PayPal not completed:", captureRes);
             await failedPayPalOrder(orderData);
-            setIsProcessing(false);
+            setLoading(false);
             Alert.alert("Payment not completed");
           }
         } catch (e: any) {
-          console.log("❌ capture error:", e?.response?.data || e?.message);
+          console.log("❌ PayPal capture error:", e?.response?.data || e?.message);
           await failedPayPalOrder(orderData);
-          setIsProcessing(false);
+          setLoading(false);
           Alert.alert("Error", "PayPal capture failed");
         }
       }
 
-      // cancel
+      // ✅ cancel
       if (url.includes("paypal-cancel")) {
         if (orderData) await failedPayPalOrder(orderData);
-        setIsProcessing(false);
+        setLoading(false);
         onCancel?.();
       }
     });
 
+    // ✅ auto-start like Afterpay
+    startPayPal();
+
     return () => sub.remove();
-  }, [paypalOrderID, orderData, onSuccess, onCancel]);
+    // NOTE: keep deps empty to behave like Afterpay (start once)
+  }, []);
 
-  return (
-    <View style={styles.container}>
-      <Pressable
-        onPress={handlePayPal}
-        disabled={isProcessing}
-        style={({ pressed }) => [
-          styles.button,
-          isProcessing && styles.disabled,
-          pressed && !isProcessing && styles.pressed,
-        ]}
-      >
-        {isProcessing ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.text}>Pay with PayPal</Text>
-        )}
-      </Pressable>
-    </View>
-  );
+  if (loading) return <ActivityIndicator size="large" />;
+  return null;
 }
-
-const styles = StyleSheet.create({
-  container: { marginTop: 16, width: "100%" },
-  button: {
-    width: "100%",
-    backgroundColor: "#003087",
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  text: { color: "#fff", fontSize: 16, fontWeight: "700" },
-  disabled: { opacity: 0.6 },
-  pressed: { opacity: 0.85 },
-});

@@ -74,8 +74,8 @@ export default function ProductDetailScreen() {
     product.images?.length > 0
       ? product.images.map((i: any) => IMAGE_BASE_URL + i.image)
       : product.image
-      ? [IMAGE_BASE_URL + product.image]
-      : [];
+        ? [IMAGE_BASE_URL + product.image]
+        : [];
 
   const isAlreadyInCart = cartItems.some(
     (item: any) => item.id === product.id
@@ -88,13 +88,30 @@ export default function ProductDetailScreen() {
       return;
     }
 
+    const regularPrice = Number(product.regular_price || 0);
+    const discountPrice = Number(product.discount_price || 0);
+    const finalPrice = discountPrice > 0 ? discountPrice : regularPrice;
+
     dispatch(
       addToCart({
-        id: product.id,
+        cart_id: Date.now(),
+
+        product_id: product.id,
         name: String(product.name),
-        price: product.discount_price || product.regular_price,
-        image: images[0],
-        qty: 1,
+        slug: String(product.slug || ""),
+        weight: Number(product.weight || 0),
+
+        variations: [], // if you have variations later, set it here
+        images: images || [],
+        quantity: 1,
+
+        regular_price: regularPrice,
+        discount_price: discountPrice,
+        price: finalPrice,
+
+        department_id: Number(product.department_id || 0),
+        category_id: Number(product.category_id || 0),
+        model_id: Number(product.model_id || 0),
       })
     );
   };

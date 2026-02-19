@@ -1,4 +1,4 @@
-// apiSlice.ts
+// checkoutApi.ts (or wherever you have checkoutApi)
 
 import apiSlice from "../apiSlice";
 
@@ -14,7 +14,16 @@ export const checkoutApi = apiSlice.injectEndpoints({
         body,
       }),
     }),
+
+    // ✅ NEW: Apply Coupon
+    applyCoupon: builder.mutation({
+      query: (body) => ({
+        url: "/v1/checkout/add_coupon",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useGetShippingPriceMutation } = checkoutApi;
+export const { useGetShippingPriceMutation, useApplyCouponMutation } = checkoutApi;

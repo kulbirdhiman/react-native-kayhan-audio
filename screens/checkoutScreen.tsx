@@ -1,4 +1,4 @@
-// ✅ CheckoutScreen.tsx (UPDATED - Pay Now triggers payment)
+// ✅ CheckoutScreen.tsx (UPDATED - cart shape uses product_id + quantity + coupon_code as discount)
 
 import React, { useMemo, useState, useCallback } from "react";
 import {
@@ -11,10 +11,7 @@ import {
   Alert,
   BackHandler,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSelector } from "react-redux";
@@ -28,16 +25,29 @@ export default function CheckoutScreen({ navigation }: any) {
   const [step, setStep] = useState(1);
   const insets = useSafeAreaInsets();
 
-  // ✅ NEW: start payment only after Pay Now
   const [startPayment, setStartPayment] = useState(false);
 
-  // Cart
-  const cartItems = useSelector((state: RootState) => state.cart.items);
+  // ✅ Cart from redux (backend-ready shape)
+  const cartItemsRedux = useSelector((state: RootState) => state.cart.items);
 
-  const subtotal = useMemo(
-    () => cartItems.reduce((sum, i) => sum + i.price * i.qty, 0),
-    [cartItems]
-  );
+  // ✅ Local cart so we can append coupon free-product without touching redux
+  const [cartLocalItems, setCartLocalItems] = useState<any[]>(cartItemsRedux);
+
+  React.useEffect(() => {
+    setCartLocalItems(cartItemsRedux);
+  }, [cartItemsRedux]);
+
+  // ✅ Coupon / discount state
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [discountData, setDiscountData] = useState<any>(null);
+
+  const subtotal = useMemo(() => {
+    return (cartLocalItems || []).reduce((sum, i) => {
+      const q = Number(i.quantity ?? i.qty ?? 1) || 1;
+      const price = Number(i.price) || 0;
+      return sum + price * q;
+    }, 0);
+  }, [cartLocalItems]);
 
   // Address state
   const [firstName, setFirstName] = useState("");
@@ -55,9 +65,29 @@ export default function CheckoutScreen({ navigation }: any) {
   const [shippingPrice, setShippingPrice] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState(0);
 
-  const total = subtotal + shippingPrice;
+  // ✅ apply free shipping if coupon says so
+  const finalShipping = useMemo(() => {
+    if (discountData?.is_shipping_free == 1) return 0;
+    return shippingPrice;
+  }, [discountData, shippingPrice]);
 
-  // ✅ Proper structured shipping address
+  // ✅ IMPORTANT: your API returns DISCOUNT amount in `coupon_code` (example: 18)
+  const couponDiscountValue = useMemo(() => {
+    const d =
+      discountData?.discount_amount ?? // if PaymentStep normalized it
+      discountData?.coupon_code ??      // your backend result shows this is discount
+      0;
+
+    const n = Number(d) || 0;
+    return n < 0 ? 0 : n;
+  }, [discountData]);
+
+  const total = useMemo(() => {
+    const t = subtotal + finalShipping - couponDiscountValue;
+    return t < 0 ? 0 : t;
+  }, [subtotal, finalShipping, couponDiscountValue]);
+
+  // ✅ normalize country/state IDs so backend never gets undefined
   const shippingAddress = useMemo(
     () => ({
       name: firstName,
@@ -70,23 +100,29 @@ export default function CheckoutScreen({ navigation }: any) {
 
       country: selectedCountry
         ? {
-            id: selectedCountry.numericCode,
-            name: selectedCountry.name,
-            iso2: selectedCountry.isoCode,
-            iso3: selectedCountry.isoCode,
+            id:
+              selectedCountry.id ??
+              selectedCountry.numericCode ??
+              selectedCountry.country_id ??
+              null,
+            name: selectedCountry.name ?? "",
+            iso2: selectedCountry.isoCode ?? selectedCountry.iso2 ?? "",
+            iso3: selectedCountry.iso3 ?? selectedCountry.isoCode ?? "",
           }
         : null,
-
       country_name: selectedCountry?.name || null,
 
       state: selectedState
         ? {
-            id: selectedState.isoCode,
-            name: selectedState.name,
-            state_code: selectedState.isoCode,
+            id:
+              selectedState.id ??
+              selectedState.state_id ??
+              selectedState.isoCode ??
+              null,
+            name: selectedState.name ?? "",
+            state_code: selectedState.state_code ?? selectedState.isoCode ?? "",
           }
         : null,
-
       state_name: selectedState?.name || null,
     }),
     [
@@ -102,7 +138,6 @@ export default function CheckoutScreen({ navigation }: any) {
     ]
   );
 
-  // ✅ validation
   const isAddressValid = useMemo(() => {
     return (
       !!firstName &&
@@ -127,9 +162,7 @@ export default function CheckoutScreen({ navigation }: any) {
     postcode,
   ]);
 
-  // ✅ back step (header + hardware)
   const goBackStep = useCallback(() => {
-    // If payment is started, first stop payment UI
     if (step === 3 && startPayment) {
       setStartPayment(false);
       return true;
@@ -147,17 +180,14 @@ export default function CheckoutScreen({ navigation }: any) {
   useFocusEffect(
     useCallback(() => {
       const onBackPress = () => goBackStep();
-      const sub = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress
-      );
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
       return () => sub.remove();
     }, [goBackStep])
   );
 
   const onSelectPayment = (id: number) => {
     setSelectedPayment(id);
-    setStartPayment(false); // ✅ changing payment goes back to list mode
+    setStartPayment(false);
   };
 
   const handleContinue = () => {
@@ -176,7 +206,6 @@ export default function CheckoutScreen({ navigation }: any) {
         Alert.alert("Select Payment", "Please choose a payment method");
         return;
       }
-      // ✅ start payment only now
       setStartPayment(true);
       return;
     }
@@ -186,7 +215,6 @@ export default function CheckoutScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={goBackStep}>
           <Ionicons name="chevron-back" size={24} />
@@ -197,22 +225,10 @@ export default function CheckoutScreen({ navigation }: any) {
         </View>
       </View>
 
-      {/* Steps */}
       <View style={styles.steps}>
         {["Address", "Shipping", "Payment"].map((label, i) => (
-          <View
-            key={i}
-            style={[
-              styles.stepPill,
-              step === i + 1 && styles.activeStep,
-            ]}
-          >
-            <Text
-              style={[
-                styles.stepText,
-                step === i + 1 && styles.activeStepText,
-              ]}
-            >
+          <View key={i} style={[styles.stepPill, step === i + 1 && styles.activeStep]}>
+            <Text style={[styles.stepText, step === i + 1 && styles.activeStepText]}>
               {label}
             </Text>
           </View>
@@ -221,24 +237,39 @@ export default function CheckoutScreen({ navigation }: any) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 220,
-        }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 220 }}
       >
-        {/* Order Summary */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Order Summary</Text>
 
-          {cartItems.map((item) => (
-            <View key={item.id} style={styles.productRow}>
-              <Image source={{ uri: item.image }} style={styles.image} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.productName}>{item.name}</Text>
-                <Text style={styles.qty}>Qty {item.qty}</Text>
+          {cartLocalItems.map((item: any, idx: number) => {
+            const key = item.product_id ?? item.id ?? item.cart_id ?? idx;
+            const qty = Number(item.quantity ?? item.qty ?? 1) || 1;
+
+            const img =
+              item.image ??
+              item.images?.[0]?.image ??
+              item.images?.[0]?.url ??
+              item.images?.[0] ??
+              undefined;
+
+            return (
+              <View key={key} style={styles.productRow}>
+                <Image
+                  source={{ uri: img || "https://via.placeholder.com/60" }}
+                  style={styles.image}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.productName}>{item.name}</Text>
+                  <Text style={styles.qty}>Qty {qty}</Text>
+                  {item.is_free == 1 && (
+                    <Text style={{ fontSize: 12, color: "#16a34a" }}>Free item</Text>
+                  )}
+                </View>
+                <Text style={styles.price}>₹{(Number(item.price) || 0) * qty}</Text>
               </View>
-              <Text style={styles.price}>₹{item.price * item.qty}</Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {step === 1 && (
@@ -269,7 +300,7 @@ export default function CheckoutScreen({ navigation }: any) {
             selectedShipping={selectedShipping}
             setSelectedShipping={setSelectedShipping}
             setShippingPrice={setShippingPrice}
-            productData={cartItems}
+            productData={cartLocalItems}
             shippingAddress={shippingAddress}
           />
         )}
@@ -283,7 +314,6 @@ export default function CheckoutScreen({ navigation }: any) {
               Alert.alert("Success 🎉", "Payment Successful");
               setStartPayment(false);
               setSelectedPayment(0);
-              // navigation.navigate("Success"); // optional
             }}
             onCancel={() => {
               Alert.alert("Cancelled", "Payment Cancelled");
@@ -291,16 +321,18 @@ export default function CheckoutScreen({ navigation }: any) {
             }}
             shippingAddress={shippingAddress}
             billingAddress={shippingAddress}
-            productData={cartItems}
+            productData={cartLocalItems}
             selectedShipping={selectedShipping ?? 0}
-            discount={0}
-            user={{}} // ✅ pass your real user here
-            deviceDetails={{}} // ✅ pass your real deviceDetails here
+            discount={discountData}
+            user={{}}
+            deviceDetails={{}}
+            setDiscountData={setDiscountData}
+            setCouponApplied={setCouponApplied}
+            setCartItems={setCartLocalItems}
           />
         )}
       </ScrollView>
 
-      {/* Bottom Summary */}
       <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
         <View style={styles.summaryBox}>
           <View style={styles.priceRow}>
@@ -310,8 +342,15 @@ export default function CheckoutScreen({ navigation }: any) {
 
           <View style={styles.priceRow}>
             <Text>Shipping</Text>
-            <Text>₹{shippingPrice}</Text>
+            <Text>₹{finalShipping}</Text>
           </View>
+
+          {couponApplied && couponDiscountValue > 0 && (
+            <View style={styles.priceRow}>
+              <Text>Coupon</Text>
+              <Text>-₹{couponDiscountValue}</Text>
+            </View>
+          )}
 
           <View style={styles.totalRow}>
             <Text style={styles.totalText}>Total</Text>
@@ -341,23 +380,12 @@ export default function CheckoutScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F7F7F7" },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 18,
-    backgroundColor: "#FFF",
-  },
+  header: { flexDirection: "row", alignItems: "center", padding: 18, backgroundColor: "#FFF" },
   headerTitle: { fontSize: 20, fontWeight: "700", marginLeft: 12 },
   headerSub: { marginLeft: 12, marginTop: 2, fontSize: 12, color: "#777" },
 
   steps: { flexDirection: "row", justifyContent: "center", marginVertical: 12 },
-  stepPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 30,
-    backgroundColor: "#E5E7EB",
-    marginHorizontal: 6,
-  },
+  stepPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 30, backgroundColor: "#E5E7EB", marginHorizontal: 6 },
   activeStep: { backgroundColor: "#000" },
   activeStepText: { color: "#FFF" },
   stepText: { fontSize: 13, fontWeight: "600" },
